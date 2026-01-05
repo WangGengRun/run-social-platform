@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.run.runsocialplatform.module.alumni.mapper.AlumniProfileMapper">
+
+    <!-- 校友列表搜索查询 -->
+    <!-- resources/mapper/AlumniProfileMapper.xml - 更新排序部分 -->
+    <select id="searchAlumniList" resultType="com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO">
+        SELECT
+        a.id as alumniId,
+        a.user_id as userId,
+        a.real_name as realName,
+        a.admission_year as admissionYear,
+        a.graduation_year as graduationYear,
+        a.college,
+        a.major,
+        a.company,
+        a.position,
+        a.city,
+        a.verify_status as verifyStatus,
+        u.avatar,
+        CASE
+        WHEN f.id IS NOT NULL THEN true
+        ELSE false
+        END as isFollowed,
+        a.created_at as createTime
+        FROM alumni_info a
+        LEFT JOIN user u ON a.user_id = u.id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+        AND f.followee_id = a.user_id
+        AND f.status = 1
+        WHERE u.status = 1
+        <if test="searchDTO.keyword != null and searchDTO.keyword != ''">
+            AND (a.real_name LIKE CONCAT('%', #{searchDTO.keyword}, '%')
+            OR a.college LIKE CONCAT('%', #{searchDTO.keyword}, '%')
+            OR a.major LIKE CONCAT('%', #{searchDTO.keyword}, '%')
+            OR a.company LIKE CONCAT('%', #{searchDTO.keyword}, '%')
+            OR a.position LIKE CONCAT('%', #{searchDTO.keyword}, '%'))
+        </if>
+        <if test="searchDTO.admissionYear != null">
+            AND a.admission_year = #{searchDTO.admissionYear}
+        </if>
+        <if test="searchDTO.graduationYear != null">
+            AND a.graduation_year = #{searchDTO.graduationYear}
+        </if>
+        <if test="searchDTO.college != null and searchDTO.college != ''">
+            AND a.college = #{searchDTO.college}
+        </if>
+        <if test="searchDTO.major != null and searchDTO.major != ''">
+            AND a.major = #{searchDTO.major}
+        </if>
+        <if test="searchDTO.company != null and searchDTO.company != ''">
+            AND a.company LIKE CONCAT('%', #{searchDTO.company}, '%')
+        </if>
+        <if test="searchDTO.position != null and searchDTO.position != ''">
+            AND a.position LIKE CONCAT('%', #{searchDTO.position}, '%')
+        </if>
+        <if test="searchDTO.city != null and searchDTO.city != ''">
+            AND a.city = #{searchDTO.city}
+        </if>
+        <if test="searchDTO.verifiedOnly != null and searchDTO.verifiedOnly">
+            AND a.verify_status = 1
+        </if>
+        ORDER BY ${searchDTO.orderByClause}
+    </select>
+
+    <!-- 校友详情查询 -->
+    <select id="selectAlumniDetail" resultType="com.run.runsocialplatform.module.alumni.model.vo.AlumniProfileVO">
+        SELECT
+            a.id as alumniId,
+            a.user_id as userId,
+            a.real_name as realName,
+            a.admission_year as admissionYear,
+            a.graduation_year as graduationYear,
+            a.college,
+            a.major,
+            a.company,
+            a.position,
+            a.city,
+            a.bio,
+            a.verify_status as verifyStatus,
+            a.created_at as createTime,
+            u.username,
+            u.avatar,
+            CASE
+                WHEN a.user_id = #{currentUserId} THEN true
+                ELSE false
+                END as isSelf,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+                END as isFollowed,
+            (SELECT COUNT(*) FROM post p WHERE p.user_id = a.user_id AND p.status = 1) as postCount,
+            (SELECT COUNT(*) FROM follow f1 WHERE f1.followee_id = a.user_id AND f1.status = 1) as followerCount,
+            (SELECT COUNT(*) FROM follow f2 WHERE f2.follower_id = a.user_id AND f2.status = 1) as followingCount
+        FROM alumni_info a
+                 LEFT JOIN user u ON a.user_id = u.id
+                 LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = a.user_id
+            AND f.status = 1
+        WHERE a.id = #{alumniId}
+          AND u.status = 1
+    </select>
+
+</mapper>

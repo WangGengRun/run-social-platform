@@ -1,10 +1,5 @@
 package com.run.runsocialplatform.module.auth.controller;
-
-
-import cn.hutool.captcha.CaptchaUtil;
-import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.core.lang.UUID;
-
 import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.common.result.Result;
@@ -19,10 +14,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -37,9 +30,6 @@ public class AuthController {
     @PostMapping("/register")
     @Operation(summary = "用户注册")
     public Result<Long> register(@Valid @RequestBody RegisterDTO registerDTO) {
-//        // 验证验证码
-//        validateCaptcha(registerDTO.getCaptchaKey(), registerDTO.getCaptcha());
-
         Long userId = userService.register(registerDTO);
         return Result.success(userId);
     }

@@ -5,6 +5,9 @@ package com.run.runsocialplatform.common.exception;
 import com.run.runsocialplatform.common.constant.ResultCode;
 import lombok.Getter;
 
+/**
+ * 自定义业务异常
+ */
 @Getter
 public class BusinessException extends RuntimeException {
 

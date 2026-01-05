@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
 public class GlobalConfig {
 
     /**
-     * 方案二：使用Spring Boot的自动配置特性
+     * 使用Spring Boot的自动配置特性
      */
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {

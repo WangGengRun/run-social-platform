@@ -109,18 +109,6 @@ springdoc:
       packages-to-scan: com.run.runsocialplatform.module
 
 knife4j:
-#  # 全局请求头列表
-#  global-headers:
-#    - name: Authorization # 请求头名称（如 Token、TokenId 等，可自定义）
-#      description: 接口访问令牌（Bearer 格式） # 请求头描述
-#      required: true # 是否必填（true：必须传，false：可选）
-#      example: "Bearer eyJhbGciOiJIUzI1NiJ9.
-#      eyJhdXRob3JpdGllcyI6WyJBTFVNTkkiXSwidXNlcm5hbWUiOiJydW4xMTEiLCJpYXQiOjE3Njc1MzU2NDIsImV4cCI6MTc2NzYyMjA0Mn0.
-#      BQj-6wKfEZiDsuYX3cryl_FiVvfBfJGrBBMwheZfciY" # 示例值（便于测试）
-#    - name: Content-Type # 可选：添加 Content-Type 等其他通用请求头
-#      description: 请求体格式
-#      required: true
-#      example: "application/json"
   enable: true
   setting:
     language: zh_cn

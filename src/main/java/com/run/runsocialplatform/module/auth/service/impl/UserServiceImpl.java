@@ -274,6 +274,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         baseMapper.updateById(user);
     }
 
+    @Override
+    public UserEntity findByUsername(String username) {
+        return lambdaQuery()
+                .eq(UserEntity::getUsername, username)
+                .one();
+    }
+
     /**
      * 验证验证码
      */

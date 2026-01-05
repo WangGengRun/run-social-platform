@@ -62,4 +62,6 @@ public interface UserService extends IService<UserEntity> {
      * 更新最后登录时间
      */
     void updateLastLoginTime(Long userId);
+
+    UserEntity findByUsername(String username);
 }

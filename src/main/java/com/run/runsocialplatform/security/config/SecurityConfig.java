@@ -1,9 +1,11 @@
 package com.run.runsocialplatform.security.config;
 
 
+import com.run.runsocialplatform.module.auth.service.UserService;
 import com.run.runsocialplatform.security.filter.JwtAuthenticationFilter;
 import com.run.runsocialplatform.security.handler.JwtAccessDeniedHandler;
 import com.run.runsocialplatform.security.handler.JwtAuthenticationEntryPoint;
+import com.run.runsocialplatform.security.service.CustomUserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -42,6 +44,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final UserService  userService;
 //    private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
 
     /**
@@ -60,6 +63,15 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+//    /**
+//     * 由于自定义了多个UserDetailsService 实现类，需要向Security指明用哪个实现类
+//     * @return
+//     */
+//    @Bean
+//    public UserDetailsService userDetailsService() {
+//        // 明确返回其中一个实现
+//        return new CustomUserDetailsServiceImpl(userService); // 或者 CustomUserDetailsServiceImpl
+//    }
     /**
      * 认证提供者
      */
