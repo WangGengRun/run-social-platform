@@ -4,7 +4,7 @@ package com.run.runsocialplatform.module.alumni.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.run.runsocialplatform.module.alumni.model.AlumniInfo;
+import com.run.runsocialplatform.module.alumni.model.entity.AlumniInfo;
 import com.run.runsocialplatform.module.alumni.model.dto.AlumniProfileDTO;
 import com.run.runsocialplatform.module.alumni.model.dto.AlumniSearchDTO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO;

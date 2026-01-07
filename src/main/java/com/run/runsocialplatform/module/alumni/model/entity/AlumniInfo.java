@@ -1,4 +1,4 @@
-package com.run.runsocialplatform.module.alumni.model;
+package com.run.runsocialplatform.module.alumni.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;

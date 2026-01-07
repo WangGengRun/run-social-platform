@@ -7,6 +7,7 @@ import com.run.runsocialplatform.module.alumni.model.dto.AlumniSearchDTO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniProfileVO;
 import com.run.runsocialplatform.module.alumni.service.AlumniProfileService;
+import com.run.runsocialplatform.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -88,9 +89,12 @@ public class AlumniProfileController {
         return Result.success(isComplete);
     }
 
+    /**
+     * 获取当前用户ID的逻辑
+     * @return
+     */
     private Long getCurrentUserId() {
-        // 这里需要实现获取当前用户ID的逻辑
-        // 可以使用SecurityUtil或者Authentication对象
-        return 1L; // 临时返回
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        return currentUserId; // 临时返回
     }
 }

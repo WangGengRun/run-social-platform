@@ -4,15 +4,13 @@ package com.run.runsocialplatform.module.alumni.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 
-import com.alibaba.druid.wall.violation.ErrorCode;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.module.alumni.mapper.AlumniProfileMapper;
-import com.run.runsocialplatform.module.alumni.model.AlumniInfo;
+import com.run.runsocialplatform.module.alumni.model.entity.AlumniInfo;
 import com.run.runsocialplatform.module.alumni.model.dto.AlumniProfileDTO;
 import com.run.runsocialplatform.module.alumni.model.dto.AlumniSearchDTO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO;
@@ -25,13 +23,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+
 
 @Slf4j
 @Service

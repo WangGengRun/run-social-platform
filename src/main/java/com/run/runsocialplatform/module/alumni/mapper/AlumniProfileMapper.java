@@ -4,7 +4,7 @@ package com.run.runsocialplatform.module.alumni.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.run.runsocialplatform.module.alumni.model.AlumniInfo;
+import com.run.runsocialplatform.module.alumni.model.entity.AlumniInfo;
 import com.run.runsocialplatform.module.alumni.model.dto.AlumniSearchDTO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO;
 import com.run.runsocialplatform.module.alumni.model.vo.AlumniProfileVO;

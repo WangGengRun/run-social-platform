@@ -36,7 +36,7 @@ spring:
 
 # MyBatis-Plus配置
 mybatis-plus:
-  type-aliases-package: com.alumni.module.**.model
+  type-aliases-package: com.run.runsocialplatform.module.**.model
   global-config:
     db-config:
       id-type: auto
