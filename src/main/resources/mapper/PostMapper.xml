@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.run.runsocialplatform.module.post.mapper.PostMapper">
+
+    <!-- 查询关注的人的动态列表 -->
+    <select id="selectFollowingPosts" resultType="com.run.runsocialplatform.module.post.model.vo.PostVO">
+        SELECT
+            p.id,
+            p.user_id as userId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            p.content,
+            p.image_urls as imageUrls,
+            p.visibility,
+            p.like_count as likeCount,
+            p.comment_count as commentCount,
+            CASE
+                WHEN p.user_id = #{userId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN pi_like.id IS NOT NULL THEN true
+                ELSE false
+            END as isLiked,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            p.created_at as createdAt,
+            p.updated_at as updatedAt
+        FROM post p
+        INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        INNER JOIN follow f ON f.follower_id = #{userId}
+            AND f.followee_id = p.user_id
+            AND f.status = 1
+        LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
+            AND pi_like.user_id = #{userId}
+            AND pi_like.type = 1
+            AND pi_like.status = 1
+        WHERE p.status = 1
+          AND u.status = 1
+          AND (p.visibility = 0 OR p.visibility = 1)
+        ORDER BY p.created_at DESC
+    </select>
+
+    <!-- 查询推荐动态列表 -->
+    <select id="selectRecommendedPosts" resultType="com.run.runsocialplatform.module.post.model.vo.PostVO">
+        SELECT
+            p.id,
+            p.user_id as userId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            p.content,
+            p.image_urls as imageUrls,
+            p.visibility,
+            p.like_count as likeCount,
+            p.comment_count as commentCount,
+            CASE
+                WHEN p.user_id = #{currentUserId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN pi_like.id IS NOT NULL THEN true
+                ELSE false
+            END as isLiked,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            p.created_at as createdAt,
+            p.updated_at as updatedAt
+        FROM post p
+        INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = p.user_id
+            AND f.status = 1
+        LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
+            AND pi_like.user_id = #{currentUserId}
+            AND pi_like.type = 1
+            AND pi_like.status = 1
+        WHERE p.status = 1
+          AND u.status = 1
+          AND p.visibility = 0
+        ORDER BY p.created_at DESC
+    </select>
+
+    <!-- 查询热门动态列表 -->
+    <select id="selectHotPosts" resultType="com.run.runsocialplatform.module.post.model.vo.PostVO">
+        SELECT
+            p.id,
+            p.user_id as userId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            p.content,
+            p.image_urls as imageUrls,
+            p.visibility,
+            p.like_count as likeCount,
+            p.comment_count as commentCount,
+            CASE
+                WHEN p.user_id = #{currentUserId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN pi_like.id IS NOT NULL THEN true
+                ELSE false
+            END as isLiked,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            p.created_at as createdAt,
+            p.updated_at as updatedAt
+        FROM post p
+        INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = p.user_id
+            AND f.status = 1
+        LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
+            AND pi_like.user_id = #{currentUserId}
+            AND pi_like.type = 1
+            AND pi_like.status = 1
+        WHERE p.status = 1
+          AND u.status = 1
+          AND p.visibility = 0
+        ORDER BY (p.like_count * 2 + p.comment_count) DESC, p.created_at DESC
+    </select>
+
+    <!-- 查询指定用户的动态列表 -->
+    <select id="selectUserPosts" resultType="com.run.runsocialplatform.module.post.model.vo.PostVO">
+        SELECT
+            p.id,
+            p.user_id as userId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            p.content,
+            p.image_urls as imageUrls,
+            p.visibility,
+            p.like_count as likeCount,
+            p.comment_count as commentCount,
+            CASE
+                WHEN p.user_id = #{currentUserId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN pi_like.id IS NOT NULL THEN true
+                ELSE false
+            END as isLiked,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            p.created_at as createdAt,
+            p.updated_at as updatedAt
+        FROM post p
+        INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = p.user_id
+            AND f.status = 1
+        LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
+            AND pi_like.user_id = #{currentUserId}
+            AND pi_like.type = 1
+            AND pi_like.status = 1
+        WHERE p.user_id = #{userId}
+          AND p.status = 1
+          AND u.status = 1
+          AND (
+            p.visibility = 0
+            OR (p.visibility = 1 AND #{currentUserId} IN (SELECT user_id FROM alumni_info WHERE verify_status = 1))
+            OR p.user_id = #{currentUserId}
+          )
+        ORDER BY p.created_at DESC
+    </select>
+
+    <!-- 查询动态详情 -->
+    <select id="selectPostDetail" resultType="com.run.runsocialplatform.module.post.model.vo.PostVO">
+        SELECT
+            p.id,
+            p.user_id as userId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            p.content,
+            p.image_urls as imageUrls,
+            p.visibility,
+            p.like_count as likeCount,
+            p.comment_count as commentCount,
+            CASE
+                WHEN p.user_id = #{currentUserId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN pi_like.id IS NOT NULL THEN true
+                ELSE false
+            END as isLiked,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            p.created_at as createdAt,
+            p.updated_at as updatedAt
+        FROM post p
+        INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = p.user_id
+            AND f.status = 1
+        LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
+            AND pi_like.user_id = #{currentUserId}
+            AND pi_like.type = 1
+            AND pi_like.status = 1
+        WHERE p.id = #{postId}
+          AND p.status = 1
+          AND u.status = 1
+          AND (
+            p.visibility = 0
+            OR (p.visibility = 1 AND #{currentUserId} IN (SELECT user_id FROM alumni_info WHERE verify_status = 1))
+            OR p.user_id = #{currentUserId}
+          )
+    </select>
+
+</mapper>
+

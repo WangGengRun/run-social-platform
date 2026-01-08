@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.run.runsocialplatform.module.follow.mapper.FollowMapper">
+
+    <!-- 查询我的关注列表 -->
+    <select id="selectFollowingList" resultType="com.run.runsocialplatform.module.follow.model.vo.FollowListVO">
+        SELECT
+            u.id as userId,
+            a.id as alumniId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            a.admission_year as admissionYear,
+            a.graduation_year as graduationYear,
+            a.college,
+            a.major,
+            a.company,
+            a.position,
+            a.city,
+            a.verify_status as verifyStatus,
+            CASE
+                WHEN f2.id IS NOT NULL THEN true
+                ELSE false
+            END as isMutualFollow,
+            f.created_at as followTime
+        FROM follow f
+        INNER JOIN user u ON f.followee_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f2 ON f2.follower_id = f.followee_id
+            AND f2.followee_id = #{currentUserId}
+            AND f2.status = 1
+        WHERE f.follower_id = #{followerId}
+          AND f.status = 1
+          AND u.status = 1
+        ORDER BY f.created_at DESC
+    </select>
+
+    <!-- 查询我的粉丝列表 -->
+    <select id="selectFollowerList" resultType="com.run.runsocialplatform.module.follow.model.vo.FollowListVO">
+        SELECT
+            u.id as userId,
+            a.id as alumniId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            a.admission_year as admissionYear,
+            a.graduation_year as graduationYear,
+            a.college,
+            a.major,
+            a.company,
+            a.position,
+            a.city,
+            a.verify_status as verifyStatus,
+            CASE
+                WHEN f2.id IS NOT NULL THEN true
+                ELSE false
+            END as isMutualFollow,
+            f.created_at as followTime
+        FROM follow f
+        INNER JOIN user u ON f.follower_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        LEFT JOIN follow f2 ON f2.follower_id = #{currentUserId}
+            AND f2.followee_id = f.follower_id
+            AND f2.status = 1
+        WHERE f.followee_id = #{followeeId}
+          AND f.status = 1
+          AND u.status = 1
+        ORDER BY f.created_at DESC
+    </select>
+
+    <!-- 查询互相关注列表 -->
+    <select id="selectMutualFollowList" resultType="com.run.runsocialplatform.module.follow.model.vo.FollowListVO">
+        SELECT
+            u.id as userId,
+            a.id as alumniId,
+            u.username,
+            a.real_name as realName,
+            u.avatar,
+            a.admission_year as admissionYear,
+            a.graduation_year as graduationYear,
+            a.college,
+            a.major,
+            a.company,
+            a.position,
+            a.city,
+            a.verify_status as verifyStatus,
+            true as isMutualFollow,
+            f1.created_at as followTime
+        FROM follow f1
+        INNER JOIN follow f2 ON f1.followee_id = f2.follower_id
+            AND f1.follower_id = f2.followee_id
+        INNER JOIN user u ON f1.followee_id = u.id
+        LEFT JOIN alumni_info a ON u.id = a.user_id
+        WHERE f1.follower_id = #{userId}
+          AND f1.status = 1
+          AND f2.status = 1
+          AND u.status = 1
+        ORDER BY f1.created_at DESC
+    </select>
+
+    <!-- 统计关注数（我关注的） -->
+    <select id="countFollowing" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM follow f
+        INNER JOIN user u ON f.followee_id = u.id
+        WHERE f.follower_id = #{userId}
+          AND f.status = 1
+          AND u.status = 1
+    </select>
+
+    <!-- 统计粉丝数（关注我的） -->
+    <select id="countFollower" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM follow f
+        INNER JOIN user u ON f.follower_id = u.id
+        WHERE f.followee_id = #{userId}
+          AND f.status = 1
+          AND u.status = 1
+    </select>
+
+    <!-- 统计互相关注数 -->
+    <select id="countMutualFollow" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM follow f1
+        INNER JOIN follow f2 ON f1.followee_id = f2.follower_id
+            AND f1.follower_id = f2.followee_id
+        INNER JOIN user u ON f1.followee_id = u.id
+        WHERE f1.follower_id = #{userId}
+          AND f1.status = 1
+          AND f2.status = 1
+          AND u.status = 1
+    </select>
+
+    <!-- 检查是否已关注 -->
+    <select id="checkFollowRelation" resultType="com.run.runsocialplatform.module.follow.model.entity.Follow">
+        SELECT *
+        FROM follow
+        WHERE follower_id = #{followerId}
+          AND followee_id = #{followeeId}
+        LIMIT 1
+    </select>
+
+</mapper>
+
