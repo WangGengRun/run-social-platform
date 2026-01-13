@@ -17,33 +17,58 @@
                 WHEN last_msg.receiver_id = #{userId} AND last_msg.is_read = 0 THEN false
                 ELSE true
             END as isRead,
-            COALESCE(unread_count.count, 0) as unreadCount
+            COALESCE(unread_count.unread_count, 0) as unreadCount
         FROM (
-            SELECT
+            SELECT DISTINCT
                 CASE
                     WHEN sender_id = #{userId} THEN receiver_id
                     ELSE sender_id
-                END as other_user_id,
-                MAX(id) as last_message_id
+                END as other_user_id
             FROM private_message
             WHERE (sender_id = #{userId} OR receiver_id = #{userId})
               AND status = 1
-            GROUP BY other_user_id
-        ) conversation
-        INNER JOIN private_message last_msg ON last_msg.id = conversation.last_message_id
-        INNER JOIN user other_user ON other_user.id = conversation.other_user_id
+        ) conversation_users
+        INNER JOIN user other_user ON other_user.id = conversation_users.other_user_id
         LEFT JOIN alumni_info a ON a.user_id = other_user.id
         LEFT JOIN (
             SELECT
+                CASE
+                    WHEN pm1.sender_id = #{userId} THEN pm1.receiver_id
+                    ELSE pm1.sender_id
+                END as other_user_id,
+                pm1.id,
+                pm1.content,
+                pm1.message_type,
+                pm1.created_at,
+                pm1.receiver_id,
+                pm1.is_read
+            FROM private_message pm1
+            INNER JOIN (
+                SELECT
+                    CASE
+                        WHEN sender_id = #{userId} THEN receiver_id
+                        ELSE sender_id
+                    END as other_user_id,
+                    MAX(id) as max_id
+                FROM private_message
+                WHERE (sender_id = #{userId} OR receiver_id = #{userId})
+                  AND status = 1
+                GROUP BY other_user_id
+            ) latest ON pm1.id = latest.max_id
+            WHERE pm1.status = 1
+        ) last_msg ON last_msg.other_user_id = conversation_users.other_user_id
+        LEFT JOIN (
+            SELECT
                 sender_id as other_user_id,
-                COUNT(*) as count
+                COUNT(*) as unread_count
             FROM private_message
             WHERE receiver_id = #{userId}
               AND is_read = 0
               AND status = 1
             GROUP BY sender_id
-        ) unread_count ON unread_count.other_user_id = conversation.other_user_id
+        ) unread_count ON unread_count.other_user_id = conversation_users.other_user_id
         WHERE other_user.status = 1
+          AND last_msg.id IS NOT NULL
         ORDER BY last_msg.created_at DESC
     </select>
 
