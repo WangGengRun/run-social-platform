@@ -105,7 +105,12 @@ public class SecurityConfig {
                                 "/doc.html",              // Knife4j文档
                                 "/webjars/**",            // WebJars资源
                                 "/favicon.ico",           // 网站图标
-                                "/error"                  // 错误页面
+                                "/error",                 // 错误页面
+                                "/ws/**",                 // WebSocket连接（认证在拦截器中处理）
+                                "/websocket-test**",      // WebSocket测试页面
+                                "/*.html",                // 静态HTML文件
+                                "/*.js",                  // 静态JS文件
+                                "/*.css"                  // 静态CSS文件
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

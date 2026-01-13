@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.run.runsocialplatform.module.message.mapper.PrivateMessageMapper">
+
+    <!-- 查询会话列表 -->
+    <select id="selectConversationList" resultType="com.run.runsocialplatform.module.message.model.vo.ConversationVO">
+        SELECT
+            other_user.id as userId,
+            other_user.username,
+            a.real_name as realName,
+            other_user.avatar,
+            last_msg.content as lastMessage,
+            last_msg.message_type as lastMessageType,
+            last_msg.created_at as lastMessageTime,
+            CASE
+                WHEN last_msg.receiver_id = #{userId} AND last_msg.is_read = 0 THEN false
+                ELSE true
+            END as isRead,
+            COALESCE(unread_count.count, 0) as unreadCount
+        FROM (
+            SELECT
+                CASE
+                    WHEN sender_id = #{userId} THEN receiver_id
+                    ELSE sender_id
+                END as other_user_id,
+                MAX(id) as last_message_id
+            FROM private_message
+            WHERE (sender_id = #{userId} OR receiver_id = #{userId})
+              AND status = 1
+            GROUP BY other_user_id
+        ) conversation
+        INNER JOIN private_message last_msg ON last_msg.id = conversation.last_message_id
+        INNER JOIN user other_user ON other_user.id = conversation.other_user_id
+        LEFT JOIN alumni_info a ON a.user_id = other_user.id
+        LEFT JOIN (
+            SELECT
+                sender_id as other_user_id,
+                COUNT(*) as count
+            FROM private_message
+            WHERE receiver_id = #{userId}
+              AND is_read = 0
+              AND status = 1
+            GROUP BY sender_id
+        ) unread_count ON unread_count.other_user_id = conversation.other_user_id
+        WHERE other_user.status = 1
+        ORDER BY last_msg.created_at DESC
+    </select>
+
+    <!-- 查询与指定用户的消息列表 -->
+    <select id="selectMessageListWithUser" resultType="com.run.runsocialplatform.module.message.model.vo.PrivateMessageVO">
+        SELECT
+            pm.id,
+            pm.sender_id as senderId,
+            sender.username as senderUsername,
+            sender_a.real_name as senderRealName,
+            sender.avatar as senderAvatar,
+            pm.receiver_id as receiverId,
+            receiver.username as receiverUsername,
+            receiver_a.real_name as receiverRealName,
+            receiver.avatar as receiverAvatar,
+            pm.content,
+            pm.message_type as messageType,
+            CASE WHEN pm.is_read = 1 THEN true ELSE false END as isRead,
+            pm.read_time as readTime,
+            CASE
+                WHEN pm.sender_id = #{userId} THEN true
+                ELSE false
+            END as isSelf,
+            pm.created_at as createdAt
+        FROM private_message pm
+        INNER JOIN user sender ON pm.sender_id = sender.id
+        LEFT JOIN alumni_info sender_a ON sender.id = sender_a.user_id
+        INNER JOIN user receiver ON pm.receiver_id = receiver.id
+        LEFT JOIN alumni_info receiver_a ON receiver.id = receiver_a.user_id
+        WHERE pm.status = 1
+          AND sender.status = 1
+          AND receiver.status = 1
+          AND (
+            (pm.sender_id = #{userId} AND pm.receiver_id = #{otherUserId})
+            OR (pm.sender_id = #{otherUserId} AND pm.receiver_id = #{userId})
+          )
+        ORDER BY pm.created_at ASC
+    </select>
+
+    <!-- 统计未读消息总数 -->
+    <select id="countUnreadMessages" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM private_message
+        WHERE receiver_id = #{userId}
+          AND is_read = 0
+          AND status = 1
+    </select>
+
+    <!-- 统计与指定用户的未读消息数 -->
+    <select id="countUnreadMessagesWithUser" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM private_message
+        WHERE receiver_id = #{userId}
+          AND sender_id = #{otherUserId}
+          AND is_read = 0
+          AND status = 1
+    </select>
+
+    <!-- 查询最后一条消息 -->
+    <select id="selectLastMessage" resultType="com.run.runsocialplatform.module.message.model.entity.PrivateMessage">
+        SELECT *
+        FROM private_message
+        WHERE (
+            (sender_id = #{userId} AND receiver_id = #{otherUserId})
+            OR (sender_id = #{otherUserId} AND receiver_id = #{userId})
+        )
+          AND status = 1
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+</mapper>
+
