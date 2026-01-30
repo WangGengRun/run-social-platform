@@ -97,9 +97,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口
                         .requestMatchers(
-                                "/api/auth/**",           // 认证相关
-                                "/api/test/**",           // 测试接口
-                                "/api/config/**",         // 配置检查
+                                "/auth/**",           // 认证相关
+                                "/test/**",           // 测试接口
+                                "/config/**",         // 配置检查
                                 "/swagger-ui/**",         // Swagger UI
                                 "/v3/api-docs/**",        // OpenAPI文档
                                 "/doc.html",              // Knife4j文档
@@ -125,7 +125,7 @@ public class SecurityConfig {
                 )
                 // 配置登出
                 .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
+                        .logoutUrl("/auth/logout")
 //                        .logoutSuccessHandler(jwtLogoutSuccessHandler)
                         .permitAll()
                 )

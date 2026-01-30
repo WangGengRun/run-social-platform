@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,6 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader(jwtUtil.getHeader());
 
+        // 只处理有Authorization头的请求
         if (StrUtil.isNotBlank(authHeader) && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
@@ -89,17 +91,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                log.error("JWT认证失败: {}", e.getMessage());
-
-                // 返回认证失败响应
-                Result<Void> result = Result.error(ResultCode.TOKEN_INVALID);
-                response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write(JsonUtil.toJson(result));
-                return;
+                // 验证失败：记录日志但不拦截请求
+                // 公开接口会在后续的SecurityConfig中被允许通过
+                // 受保护接口会在后续的SecurityConfig中被拦截
+                log.debug("JWT验证失败，继续处理请求: {}", e.getMessage());
             }
         }
 
+        // 无论验证结果如何，都继续处理请求
         filterChain.doFilter(request, response);
     }
 }

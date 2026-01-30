@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 @Tag(name = "认证管理", description = "用户认证相关接口")
 public class AuthController {
@@ -38,9 +38,9 @@ public class AuthController {
     @Operation(summary = "用户登录")
     public Result<LoginResultVO> login(@Valid @RequestBody LoginDTO loginDTO) {
         // 验证验证码（如果需要）
-        if (loginDTO.getCaptcha() != null && loginDTO.getCaptchaKey() != null) {
-            validateCaptcha(loginDTO.getCaptchaKey(), loginDTO.getCaptcha());
-        }
+//        if (loginDTO.getCaptcha() != null && loginDTO.getCaptchaKey() != null) {
+//            validateCaptcha(loginDTO.getCaptchaKey(), loginDTO.getCaptcha());
+//        }
 
         LoginResultVO resultVO = userService.login(loginDTO);
         return Result.success(resultVO);
