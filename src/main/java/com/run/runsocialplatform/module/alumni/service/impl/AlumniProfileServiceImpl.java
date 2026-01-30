@@ -163,15 +163,12 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
 
     @Override
     public Page<AlumniListItemVO> getHotAlumni(Page<AlumniListItemVO> page) {
-        // 简单的热门校友推荐逻辑
-        // 可以根据关注数、动态数等排序，这里先按注册时间倒序
+        // 热门校友推荐逻辑：按照关注数、动态数从高到低排序
         Long currentUserId = SecurityUtil.getCurrentUserId();
         AlumniSearchDTO searchDTO = new AlumniSearchDTO();
-        searchDTO.setVerifiedOnly(true);
-        searchDTO.setSortField("createTime");
-        searchDTO.setSortOrder("desc");
+        searchDTO.setVerifiedOnly(true); // 只显示已认证校友
 
-        IPage<AlumniListItemVO> result = alumniProfileMapper.searchAlumniList(
+        IPage<AlumniListItemVO> result = alumniProfileMapper.searchHotAlumniList(
                 page, searchDTO, currentUserId);
 
         return (Page<AlumniListItemVO>) result;

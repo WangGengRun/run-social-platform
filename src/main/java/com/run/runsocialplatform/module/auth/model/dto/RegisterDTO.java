@@ -13,8 +13,8 @@ public class RegisterDTO {
 
     @NotBlank(message = "用户名不能为空")
     @Length(min = 4, max = 20, message = "用户名长度4-20个字符")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "用户名只能包含字母、数字和下划线")
-    @Schema(description = "用户名", example = "zhangsan")
+    @Pattern(regexp = "^[a-zA-Z0-9_\u4e00-\u9fa5]+$", message = "用户名只能包含字母、数字、中文和下划线")
+    @Schema(description = "用户名", example = "zhangsan_123张三")
     private String username;
 
     @NotBlank(message = "密码不能为空")

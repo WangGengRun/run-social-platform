@@ -23,7 +23,9 @@
         WHEN f.id IS NOT NULL THEN true
         ELSE false
         END as isFollowed,
-        a.created_at as createTime
+        a.created_at as createTime,
+        (SELECT COUNT(*) FROM post p WHERE p.user_id = a.user_id AND p.status = 1) as postCount,
+        (SELECT COUNT(*) FROM follow f1 WHERE f1.followee_id = a.user_id AND f1.status = 1) as followerCount
         FROM alumni_info a
         LEFT JOIN user u ON a.user_id = u.id
         LEFT JOIN follow f ON f.follower_id = #{currentUserId}
@@ -100,6 +102,40 @@
             AND f.status = 1
         WHERE a.id = #{alumniId}
           AND u.status = 1
+    </select>
+
+    <!-- 热门校友列表查询 -->
+    <select id="searchHotAlumniList" resultType="com.run.runsocialplatform.module.alumni.model.vo.AlumniListItemVO">
+        SELECT
+        a.id as alumniId,
+        a.user_id as userId,
+        a.real_name as realName,
+        a.admission_year as admissionYear,
+        a.graduation_year as graduationYear,
+        a.college,
+        a.major,
+        a.company,
+        a.position,
+        a.city,
+        a.verify_status as verifyStatus,
+        u.avatar,
+        CASE
+        WHEN f.id IS NOT NULL THEN true
+        ELSE false
+        END as isFollowed,
+        a.created_at as createTime,
+        (SELECT COUNT(*) FROM post p WHERE p.user_id = a.user_id AND p.status = 1) as postCount,
+        (SELECT COUNT(*) FROM follow f1 WHERE f1.followee_id = a.user_id AND f1.status = 1) as followerCount
+        FROM alumni_info a
+        LEFT JOIN user u ON a.user_id = u.id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+        AND f.followee_id = a.user_id
+        AND f.status = 1
+        WHERE u.status = 1
+        <if test="searchDTO.verifiedOnly != null and searchDTO.verifiedOnly">
+            AND a.verify_status = 1
+        </if>
+        ORDER BY followerCount DESC, postCount DESC, createTime DESC
     </select>
 
 </mapper>

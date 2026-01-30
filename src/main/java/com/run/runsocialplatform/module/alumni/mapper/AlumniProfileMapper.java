@@ -42,4 +42,11 @@ public interface AlumniProfileMapper extends BaseMapper<AlumniInfo> {
             "AND user_id != #{userId}")
     int countByStudentIdExcludeUser(@Param("studentId") String studentId,
                                     @Param("userId") Long userId);
+
+    /**
+     * 查询热门校友列表
+     */
+    IPage<AlumniListItemVO> searchHotAlumniList(Page<AlumniListItemVO> page,
+                                               @Param("searchDTO") AlumniSearchDTO searchDTO,
+                                               @Param("currentUserId") Long currentUserId);
 }

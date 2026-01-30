@@ -9,6 +9,7 @@ import com.run.runsocialplatform.module.auth.model.vo.CaptchaVO;
 import com.run.runsocialplatform.module.auth.model.vo.LoginResultVO;
 import com.run.runsocialplatform.module.auth.service.CaptchaService;
 import com.run.runsocialplatform.module.auth.service.UserService;
+import com.run.runsocialplatform.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -99,7 +100,7 @@ public class AuthController {
     public Result<Void> changePassword(@RequestParam String oldPassword,
                                        @RequestParam String newPassword) {
         // TODO: 从SecurityContext中获取当前用户ID
-        Long currentUserId = 1L;
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         userService.changePassword(currentUserId, oldPassword, newPassword);
         return Result.success();
     }

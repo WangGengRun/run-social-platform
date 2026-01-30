@@ -40,9 +40,10 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-      logic-delete-field: status  # 逻辑删除字段
-      logic-delete-value: 0      # 逻辑删除值
-      logic-not-delete-value: 1  # 逻辑未删除值
+      # 【必删/必注释】删除全局逻辑删除配置，改为局部注解
+#      logic-delete-field: status  # 逻辑删除字段
+#      logic-delete-value: 0      # 逻辑删除值
+#      logic-not-delete-value: 1  # 逻辑未删除值
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

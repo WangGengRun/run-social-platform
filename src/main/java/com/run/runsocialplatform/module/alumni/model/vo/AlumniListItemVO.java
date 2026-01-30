@@ -47,6 +47,12 @@ public class AlumniListItemVO {
     @Schema(description = "是否关注")
     private Boolean isFollowed = false;
 
+    @Schema(description = "动态数量")
+    private Integer postCount = 0;
+
+    @Schema(description = "关注者数量")
+    private Integer followerCount = 0;
+
     @Schema(description = "是否已毕业")
     public Boolean getIsGraduated() {
         return graduationYear != null && graduationYear > 0;
