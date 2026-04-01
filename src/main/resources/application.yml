@@ -1,6 +1,8 @@
 spring:
   application:
     name: run-social-platform
+  profiles:
+    active: local
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/social_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
@@ -40,6 +42,8 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+      # 开启防全表更新删除
+      block-attack: true
       # 【必删/必注释】删除全局逻辑删除配置，改为局部注解
 #      logic-delete-field: status  # 逻辑删除字段
 #      logic-delete-value: 0      # 逻辑删除值
@@ -113,3 +117,11 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# MinIO 配置
+minio:
+  endpoint: http://localhost:9000 # MinIO服务地址（API端口，不是控制台9001）
+  accessKey: myadmin123 # 你的访问密钥（MINIO_ROOT_USER）
+  secretKey: mypassword123456 # 你的密钥（MINIO_ROOT_PASSWORD）
+  bucketName: avatar-bucket # 专门存储头像的桶名称（可自定义）
+  urlExpire: 3600 # 临时访问URL的过期时间（秒，可选，后续用于获取文件访问链接）

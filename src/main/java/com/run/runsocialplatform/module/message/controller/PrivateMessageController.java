@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * 私信管理控制器
  */
 @RestController
-@RequestMapping("/api/message")
+@RequestMapping("/message")
 @RequiredArgsConstructor
 @Tag(name = "私信管理", description = "私信相关接口")
 public class PrivateMessageController {

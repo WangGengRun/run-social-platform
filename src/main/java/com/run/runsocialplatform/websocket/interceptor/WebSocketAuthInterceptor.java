@@ -28,6 +28,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                     WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+        log.info("收到WebSocket握手请求, URI: {}", request.getURI());
         try {
             // 从查询参数或请求头获取Token
             URI uri = request.getURI();

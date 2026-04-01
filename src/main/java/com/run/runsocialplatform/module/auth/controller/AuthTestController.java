@@ -19,7 +19,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/auth/test")
+@RequestMapping("/auth/test")
 @Tag(name = "认证测试", description = "测试认证和授权功能")
 public class AuthTestController {
 

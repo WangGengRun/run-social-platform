@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.5</version>
+        <version>3.4.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
@@ -19,7 +19,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jjwt.version>0.11.5</jjwt.version>
-        <mybatis-plus.version>3.5.4</mybatis-plus.version>
+        <mybatis-plus.version>3.5.10.1</mybatis-plus.version>
         <fastjson.version>2.0.43</fastjson.version>
     </properties>
 <dependencies>
@@ -71,6 +71,38 @@
         <version>4.4.0</version>
     </dependency>
 
+    <!--阿里云百炼-灵积大模型服务-->
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>dashscope-sdk-java</artifactId>
+        <!-- 请将 'the-latest-version' 替换为最新版本号：https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
+        <version>2.22.11</version>
+    </dependency>
+    <dependency>
+        <groupId>com.alibaba.cloud.ai</groupId>
+        <artifactId>spring-ai-alibaba-starter</artifactId>
+        <version>1.0.0-M6.1</version>
+    </dependency>
+    <!-- 支持结构化输出-->
+    <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-generator</artifactId>
+        <version>4.38.0</version>
+    </dependency>
+    <!--支持文件回话记忆持久化的序列化-->
+    <dependency>
+        <groupId>com.esotericsoftware</groupId>
+        <artifactId>kryo</artifactId>
+        <version>5.6.2</version>
+    </dependency>
+
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
     <!--JWT -->
     <dependency>
         <groupId>io.jsonwebtoken</groupId>
@@ -98,14 +130,21 @@
     </dependency>
     <dependency>
         <groupId>com.baomidou</groupId>
-        <artifactId>mybatis-plus-boot-starter</artifactId>
+        <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         <version>${mybatis-plus.version}</version>
     </dependency>
     <dependency>
         <groupId>com.alibaba</groupId>
-        <artifactId>druid-spring-boot-starter</artifactId>
-        <version>1.2.20</version>
+        <artifactId>druid-spring-boot-3-starter</artifactId>
+        <version>1.2.20</version> </dependency>
+
+    <!-- MinIO Java 客户端依赖 -->
+    <dependency>
+        <groupId>io.minio</groupId>
+        <artifactId>minio</artifactId>
+        <version>8.5.7</version> <!-- 稳定版，兼容大多数Spring Boot版本 -->
     </dependency>
+
 
 
     <!-- Jackson 对 Java 8+ 日期时间 API（JSR 310）的支持依赖 -->

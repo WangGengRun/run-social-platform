@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 @RestController
-@RequestMapping("/api/alumni")
+@RequestMapping("/alumni")
 @RequiredArgsConstructor
 @Tag(name = "校友档案模块", description = "校友信息管理和搜索")
 public class AlumniProfileController {

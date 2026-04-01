@@ -23,7 +23,7 @@ import java.util.List;
  * 动态管理控制器
  */
 @RestController
-@RequestMapping("/api/post")
+@RequestMapping("/post")
 @RequiredArgsConstructor
 @Tag(name = "动态管理", description = "动态发布与互动相关接口")
 public class PostController {

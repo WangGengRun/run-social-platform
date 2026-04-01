@@ -17,7 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/activity")
+@RequestMapping("/activity")
 @RequiredArgsConstructor
 @Tag(name = "活动中心", description = "线上/线下活动管理")
 public class ActivityController {

@@ -150,6 +150,39 @@ public class PrivateMessageServiceImpl extends ServiceImpl<PrivateMessageMapper,
                 .build();
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long sendMessage(Long senderId, MessageSendDTO sendDTO) {
+        // 不能给自己发消息
+        if (senderId.equals(sendDTO.getReceiverId())) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "不能给自己发消息");
+        }
+
+        // 检查接收者是否存在
+        var receiver = userService.getById(sendDTO.getReceiverId());
+        if (receiver == null || !receiver.getStatus().equals(1)) {
+            throw new BusinessException(ResultCode.USER_NOT_EXIST, "接收者不存在或已被禁用");
+        }
+
+        // 创建消息（使用传入的 senderId）
+        PrivateMessage message = new PrivateMessage();
+        message.setSenderId(senderId);
+        message.setReceiverId(sendDTO.getReceiverId());
+        message.setContent(sendDTO.getContent());
+        message.setMessageType(sendDTO.getMessageType() != null ? sendDTO.getMessageType() : 1);
+        message.setIsRead(0);
+        message.setStatus(1);
+        save(message);
+
+        // 实时推送消息给接收者
+        PrivateMessageVO messageVO = convertToVO(message, senderId);
+        webSocketMessageService.sendPrivateMessage(sendDTO.getReceiverId(), messageVO);
+
+        log.info("发送私信成功，消息ID: {}, 发送者: {}, 接收者: {}",
+                message.getId(), senderId, sendDTO.getReceiverId());
+        return message.getId();
+    }
+
     /**
      * 转换为VO（用于WebSocket推送）
      */

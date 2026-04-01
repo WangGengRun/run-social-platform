@@ -1,0 +1,1 @@
+import{s as r}from"./request-DBycRpqs.js";const o={sendCaptcha:(t,e="SMS",s=6)=>r.post("/auth/captcha/send",{target:t,type:e,length:s}),register:t=>r.post("/auth/register",t),login:t=>r.post("/auth/login",t)};export{o as a};

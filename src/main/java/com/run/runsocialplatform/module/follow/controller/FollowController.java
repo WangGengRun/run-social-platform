@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 关注管理控制器
  */
 @RestController
-@RequestMapping("/api/follow")
+@RequestMapping("/follow")
 @RequiredArgsConstructor
 @Tag(name = "关注管理", description = "关注/粉丝相关接口")
 public class FollowController {

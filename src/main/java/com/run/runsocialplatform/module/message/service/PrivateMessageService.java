@@ -42,5 +42,7 @@ public interface PrivateMessageService extends IService<PrivateMessage> {
      * 获取未读消息数
      */
     UnreadCountVO getUnreadCount(Long otherUserId);
+
+    Long sendMessage(Long senderId, MessageSendDTO sendDTO);
 }
 

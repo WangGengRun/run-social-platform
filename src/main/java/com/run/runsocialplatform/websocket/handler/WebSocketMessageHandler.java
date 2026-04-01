@@ -1,7 +1,9 @@
 package com.run.runsocialplatform.websocket.handler;
 
 import com.alibaba.fastjson2.JSON;
+import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.websocket.model.WebSocketMessage;
+import com.run.runsocialplatform.websocket.service.WebSocketMessageService;
 import com.run.runsocialplatform.websocket.service.WebSocketSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +12,8 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
+import com.run.runsocialplatform.module.message.service.PrivateMessageService;
+import com.run.runsocialplatform.module.message.model.dto.MessageSendDTO;
 import java.util.Map;
 
 /**
@@ -22,7 +25,8 @@ import java.util.Map;
 public class WebSocketMessageHandler extends TextWebSocketHandler {
 
     private final WebSocketSessionManager sessionManager;
-
+    private final PrivateMessageService messageService;  // 添加这行
+    private final WebSocketMessageService webSocketMessageService;
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         Map<String, Object> attributes = session.getAttributes();
@@ -107,13 +111,16 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
 
         switch (type) {
             case "ping":
-                // 心跳消息，回复pong
                 WebSocketMessage pong = WebSocketMessage.builder()
                         .type("pong")
                         .data("pong")
                         .timestamp(System.currentTimeMillis())
                         .build();
                 sendMessage(session, pong);
+                break;
+
+            case "message":
+                handleSendMessage(userId, message.getData(), session);
                 break;
 
             default:
@@ -127,7 +134,57 @@ public class WebSocketMessageHandler extends TextWebSocketHandler {
                 break;
         }
     }
+    private void handleSendMessage(Long userId, Object data, WebSocketSession session) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> messageData = (Map<String, Object>) data;
 
+            Long receiverId = Long.valueOf(messageData.get("receiverId").toString());
+            String content = messageData.get("content").toString();
+            Integer messageType = messageData.get("messageType") != null
+                    ? Integer.valueOf(messageData.get("messageType").toString())
+                    : 1;
+            String clientMessageId = messageData.get("clientMessageId") != null
+                    ? messageData.get("clientMessageId").toString()
+                    : null;
+
+            MessageSendDTO sendDTO = new MessageSendDTO();
+            sendDTO.setReceiverId(receiverId);
+            sendDTO.setContent(content);
+            sendDTO.setMessageType(messageType);
+
+            // 直接传入 userId（WebSocket 握手时获取的发送者ID）
+            Long messageId = messageService.sendMessage(userId, sendDTO);
+
+            // 发送成功确认
+            WebSocketMessage ack = WebSocketMessage.builder()
+                    .type("message_ack")
+                    .data(Map.of(
+                            "clientMessageId", clientMessageId != null ? clientMessageId : "",
+                            "messageId", messageId,
+                            "success", true
+                    ))
+                    .timestamp(System.currentTimeMillis())
+                    .build();
+            sendMessage(session, ack);
+
+            log.info("WebSocket发送私信成功，消息ID: {}, 发送者: {}, 接收者: {}",
+                    messageId, userId, receiverId);
+
+        } catch (Exception e) {
+            log.error("WebSocket发送私信失败：{}", e.getMessage(), e);
+
+            WebSocketMessage ack = WebSocketMessage.builder()
+                    .type("message_ack")
+                    .data(Map.of(
+                            "success", false,
+                            "error", e.getMessage()
+                    ))
+                    .timestamp(System.currentTimeMillis())
+                    .build();
+            sendMessage(session, ack);
+        }
+    }
     /**
      * 发送消息给指定会话
      */
