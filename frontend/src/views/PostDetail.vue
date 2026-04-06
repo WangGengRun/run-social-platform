@@ -114,6 +114,7 @@ import ResolvedAvatar from '../components/ResolvedAvatar.vue'
 import AppShellBar from '../components/AppShellBar.vue'
 import { postApi } from '../api/post'
 import { usePostStore } from '../stores/post'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -156,7 +157,14 @@ const getPostDetail = async () => {
   try {
     const response = await postApi.getPostDetail(postId.value)
     if (response.code === 200) {
-      post.value = response.data
+      const data = response.data || {}
+      const imageUrlList = Array.isArray(data.imageUrlList) ? data.imageUrlList : []
+      const resolvedList = await Promise.all(imageUrlList.map((url) => resolveAvatarUrl(url)))
+      post.value = {
+        ...data,
+        imageRawUrlList: imageUrlList,
+        imageUrlList: resolvedList.map((item, index) => item || imageUrlList[index]).filter(Boolean)
+      }
     }
   } catch (error) {
     console.error('获取动态详情失败:', error)
@@ -312,7 +320,7 @@ onMounted(() => {
 
 .post-detail-container {
   flex: 1;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
 }
 
 .post-card {
@@ -443,7 +451,7 @@ onMounted(() => {
   padding: 22px;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-card);
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .comments-title {
@@ -467,27 +475,27 @@ onMounted(() => {
 }
 
 .comment-input-section {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid var(--border-subtle);
-  padding: 16px 20px 20px;
-  box-shadow: 0 -12px 40px rgba(12, 18, 34, 0.08);
-  max-width: var(--content-max);
-  margin: 0 auto;
+  position: sticky;
+  bottom: 10px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 14px 14px 10px;
+  box-shadow: 0 10px 28px rgba(12, 18, 34, 0.1);
 }
 
 @media (max-width: 840px) {
   .post-detail-container {
     padding: 10px;
-    padding-bottom: 120px;
+    padding-bottom: 14px;
   }
   
   .comment-input-section {
-    padding: 12px;
+    bottom: 8px;
+    border-radius: 12px;
+    padding: 10px 10px 8px;
   }
 }
 </style>

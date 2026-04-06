@@ -108,7 +108,6 @@ const form = ref({
 })
 
 const imageFileList = ref([])
-const imageUrls = ref([])
 
 const handleImageChange = (file, fileList) => {
   imageFileList.value = fileList
@@ -148,8 +147,17 @@ const handleSubmit = async () => {
   loading.value = true
   
   try {
-    // 准备图片URL列表
-    const imageUrlList = imageFileList.value.map(file => file.url)
+    const imageUrlList = []
+    for (const file of imageFileList.value) {
+      if (!file.raw) continue
+      const formData = new FormData()
+      formData.append('file', file.raw)
+      const uploadRes = await postApi.uploadImage(formData)
+      if (uploadRes.code !== 200 || !uploadRes.data) {
+        throw new Error(uploadRes.message || '图片上传失败')
+      }
+      imageUrlList.push(uploadRes.data)
+    }
     
     const response = await postApi.publishPost(
       form.value.content,
@@ -159,7 +167,6 @@ const handleSubmit = async () => {
     
     if (response.code === 200) {
       ElMessage.success('发布成功')
-      // 跳转到首页并刷新动态列表
       router.push('/feed')
     } else {
       ElMessage.error('发布失败，请重试')

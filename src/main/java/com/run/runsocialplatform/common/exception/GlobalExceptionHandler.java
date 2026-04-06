@@ -11,6 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -64,6 +65,16 @@ public class GlobalExceptionHandler {
     public Result<Void> handleAccessDeniedException(AccessDeniedException e) {
         log.error("权限不足: {}", e.getMessage());
         return Result.error(ResultCode.FORBIDDEN);
+    }
+
+    /**
+     * 处理上传文件大小超限异常
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result<Void> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        log.warn("上传文件过大: {}", e.getMessage());
+        return Result.error(ResultCode.PARAM_VALIDATE_FAILED.getCode(),
+                "图片有点大啦，单张请控制在 10MB 以内 (｡•́︿•̀｡)");
     }
 
     /**

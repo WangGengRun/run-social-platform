@@ -107,6 +107,29 @@ public class MinioUtil {
     }
 
     /**
+     * 上传动态图片（路径前缀 post-image/）
+     */
+    public String uploadPostImage(MultipartFile file) throws Exception {
+        checkAndCreateBucket();
+        String originalFilename = file.getOriginalFilename();
+        assert originalFilename != null;
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String newFileName = UUID.randomUUID().toString() + suffix;
+        String objectName = "post-image/" + newFileName;
+        InputStream inputStream = file.getInputStream();
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .stream(inputStream, file.getSize(), -1)
+                        .contentType(file.getContentType())
+                        .build()
+        );
+        inputStream.close();
+        return objectName;
+    }
+
+    /**
      * 核心功能2：获取头像访问URL（用于前端展示）
      * @param objectName 数据库中存储的文件路径（如：avatar/123456-avatar.jpg）
      * @return 可直接访问的临时URL（过期时间可配置，默认1小时）

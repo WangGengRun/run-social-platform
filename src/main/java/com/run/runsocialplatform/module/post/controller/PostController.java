@@ -3,6 +3,7 @@ package com.run.runsocialplatform.module.post.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.run.runsocialplatform.common.page.PageResult;
 import com.run.runsocialplatform.common.result.Result;
+import com.run.runsocialplatform.common.utils.MinioUtil;
 import com.run.runsocialplatform.module.post.model.dto.CommentCreateDTO;
 import com.run.runsocialplatform.module.post.model.dto.PostCreateDTO;
 import com.run.runsocialplatform.module.post.model.dto.PostUpdateDTO;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,6 +32,7 @@ public class PostController {
 
     private final PostService postService;
     private final PostInteractionService interactionService;
+    private final MinioUtil minioUtil;
 
     @PostMapping
     @Operation(summary = "发布动态")
@@ -37,6 +40,21 @@ public class PostController {
     public Result<Long> createPost(@Valid @RequestBody PostCreateDTO createDTO) {
         Long postId = postService.createPost(createDTO);
         return Result.success(postId);
+    }
+
+    @PostMapping("/image/upload")
+    @Operation(summary = "上传动态图片")
+    @PreAuthorize("isAuthenticated()")
+    public Result<String> uploadPostImage(@RequestParam("file") MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            return Result.error("上传文件不能为空");
+        }
+        long maxSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            return Result.error("文件大小不能超过5MB");
+        }
+        String objectName = minioUtil.uploadPostImage(file);
+        return Result.success(objectName);
     }
 
     @PutMapping("/{postId}")

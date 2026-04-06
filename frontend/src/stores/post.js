@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { postApi } from '../api/post'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 
 export const usePostStore = defineStore('post', {
   state: () => ({
@@ -36,6 +37,32 @@ export const usePostStore = defineStore('post', {
   },
 
   actions: {
+    mergeUniquePosts(oldList = [], newList = []) {
+      const merged = [...oldList]
+      const idSet = new Set(oldList.map(item => item?.id))
+      for (const item of newList) {
+        const id = item?.id
+        if (id == null || idSet.has(id)) continue
+        merged.push(item)
+        idSet.add(id)
+      }
+      return merged
+    },
+
+    async normalizePostImages(list = []) {
+      return Promise.all((list || []).map(async (post) => {
+        const imageUrlList = Array.isArray(post?.imageUrlList) ? post.imageUrlList : []
+        if (imageUrlList.length === 0) return post
+        const resolvedList = await Promise.all(imageUrlList.map((url) => resolveAvatarUrl(url)))
+        const displayList = resolvedList.map((item, index) => item || imageUrlList[index]).filter(Boolean)
+        return {
+          ...post,
+          imageRawUrlList: imageUrlList,
+          imageUrlList: displayList
+        }
+      }))
+    },
+
     async fetchRecommendedPosts(refresh = false) {
       if (this.recommendedPosts.loading) return
       
@@ -56,17 +83,29 @@ export const usePostStore = defineStore('post', {
         )
         
         if (response.code === 200) {
-          const { list, total, pageNum, pageSize } = response.data
+          const { list, total, pageNum, pageSize, current, size, totalPages, pages } = response.data
+          const normalizedList = await this.normalizePostImages(list || [])
+          const currentPage = Number(current ?? pageNum ?? this.recommendedPosts.pageNum)
+          const currentSize = Number(size ?? pageSize ?? this.recommendedPosts.pageSize)
+          const totalPageCount = Number(totalPages ?? pages ?? 0)
+          const oldLen = this.recommendedPosts.list.length
           
           if (refresh) {
-            this.recommendedPosts.list = list
+            this.recommendedPosts.list = normalizedList
           } else {
-            this.recommendedPosts.list = [...this.recommendedPosts.list, ...list]
+            this.recommendedPosts.list = this.mergeUniquePosts(this.recommendedPosts.list, normalizedList)
           }
           
           this.recommendedPosts.total = total
-          this.recommendedPosts.pageNum = pageNum + 1
-          this.recommendedPosts.hasMore = list.length === pageSize
+          this.recommendedPosts.pageNum = Number.isFinite(currentPage) ? currentPage + 1 : this.recommendedPosts.pageNum + 1
+          if (Number.isFinite(totalPageCount) && totalPageCount > 0 && Number.isFinite(currentPage)) {
+            this.recommendedPosts.hasMore = currentPage < totalPageCount
+          } else {
+            this.recommendedPosts.hasMore = normalizedList.length >= currentSize && normalizedList.length > 0
+          }
+          if (!refresh && this.recommendedPosts.list.length === oldLen) {
+            this.recommendedPosts.hasMore = false
+          }
         }
       } catch (error) {
         console.error('获取推荐动态失败:', error)
@@ -95,17 +134,29 @@ export const usePostStore = defineStore('post', {
         )
         
         if (response.code === 200) {
-          const { list, total, pageNum, pageSize } = response.data
+          const { list, total, pageNum, pageSize, current, size, totalPages, pages } = response.data
+          const normalizedList = await this.normalizePostImages(list || [])
+          const currentPage = Number(current ?? pageNum ?? this.followingPosts.pageNum)
+          const currentSize = Number(size ?? pageSize ?? this.followingPosts.pageSize)
+          const totalPageCount = Number(totalPages ?? pages ?? 0)
+          const oldLen = this.followingPosts.list.length
           
           if (refresh) {
-            this.followingPosts.list = list
+            this.followingPosts.list = normalizedList
           } else {
-            this.followingPosts.list = [...this.followingPosts.list, ...list]
+            this.followingPosts.list = this.mergeUniquePosts(this.followingPosts.list, normalizedList)
           }
           
           this.followingPosts.total = total
-          this.followingPosts.pageNum = pageNum + 1
-          this.followingPosts.hasMore = list.length === pageSize
+          this.followingPosts.pageNum = Number.isFinite(currentPage) ? currentPage + 1 : this.followingPosts.pageNum + 1
+          if (Number.isFinite(totalPageCount) && totalPageCount > 0 && Number.isFinite(currentPage)) {
+            this.followingPosts.hasMore = currentPage < totalPageCount
+          } else {
+            this.followingPosts.hasMore = normalizedList.length >= currentSize && normalizedList.length > 0
+          }
+          if (!refresh && this.followingPosts.list.length === oldLen) {
+            this.followingPosts.hasMore = false
+          }
         }
       } catch (error) {
         console.error('获取关注动态失败:', error)
@@ -134,17 +185,29 @@ export const usePostStore = defineStore('post', {
         )
         
         if (response.code === 200) {
-          const { list, total, pageNum, pageSize } = response.data
+          const { list, total, pageNum, pageSize, current, size, totalPages, pages } = response.data
+          const normalizedList = await this.normalizePostImages(list || [])
+          const currentPage = Number(current ?? pageNum ?? this.hotPosts.pageNum)
+          const currentSize = Number(size ?? pageSize ?? this.hotPosts.pageSize)
+          const totalPageCount = Number(totalPages ?? pages ?? 0)
+          const oldLen = this.hotPosts.list.length
           
           if (refresh) {
-            this.hotPosts.list = list
+            this.hotPosts.list = normalizedList
           } else {
-            this.hotPosts.list = [...this.hotPosts.list, ...list]
+            this.hotPosts.list = this.mergeUniquePosts(this.hotPosts.list, normalizedList)
           }
           
           this.hotPosts.total = total
-          this.hotPosts.pageNum = pageNum + 1
-          this.hotPosts.hasMore = list.length === pageSize
+          this.hotPosts.pageNum = Number.isFinite(currentPage) ? currentPage + 1 : this.hotPosts.pageNum + 1
+          if (Number.isFinite(totalPageCount) && totalPageCount > 0 && Number.isFinite(currentPage)) {
+            this.hotPosts.hasMore = currentPage < totalPageCount
+          } else {
+            this.hotPosts.hasMore = normalizedList.length >= currentSize && normalizedList.length > 0
+          }
+          if (!refresh && this.hotPosts.list.length === oldLen) {
+            this.hotPosts.hasMore = false
+          }
         }
       } catch (error) {
         console.error('获取热门动态失败:', error)

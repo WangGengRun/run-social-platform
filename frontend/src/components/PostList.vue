@@ -36,18 +36,28 @@
         <div class="post-content">
           <div v-if="isLockedPost(post)" class="lock-banner">🔒 校友可见内容，完成校友认证后可查看</div>
           <div class="text-content">{{ post.content }}</div>
+          <div
+            v-if="!isLockedPost(post) && shouldShowMore(post)"
+            class="read-more"
+            @click.stop="handlePostClick(post)"
+          >
+            查看更多
+          </div>
           
-          <div v-if="post.imageUrlList && post.imageUrlList.length > 0" class="image-grid">
+          <div
+            v-if="post.imageUrlList && post.imageUrlList.length > 0"
+            class="image-grid"
+            :class="`image-count-${Math.min(post.imageUrlList.length, 5)}`"
+          >
             <div
               v-for="(imageUrl, index) in post.imageUrlList"
               :key="index"
               class="image-item"
-              :class="{ 'single': post.imageUrlList.length === 1 }"
               @click.stop="handleImageClick(imageUrl)"
             >
               <el-image
                 :src="imageUrl"
-                fit="cover"
+                fit="contain"
                 :preview-src-list="post.imageUrlList"
                 :initial-index="index"
                 :preview-teleported="true"
@@ -91,13 +101,13 @@
         </div>
       </div>
       
-      <div v-if="posts.loading && posts.list.length > 0" class="loading-more">
+      <div v-if="posts.loading && posts.list.length > 0 && posts.hasMore" class="loading-more">
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>加载更多...</span>
       </div>
       
       <div v-if="!posts.hasMore && posts.list.length > 0" class="no-more">
-        <span>没有更多了</span>
+        <span>没有更多内容啦 (ฅ'ω'ฅ) ~</span>
       </div>
     </div>
   </div>
@@ -157,6 +167,7 @@ const formatTime = (time) => {
 const handleScroll = () => {
   const element = postListRef.value
   if (!element) return
+  if (posts.value.loading || !posts.value.hasMore) return
   
   const { scrollTop, scrollHeight, clientHeight } = element
   
@@ -218,6 +229,13 @@ const handleImageClick = (imageUrl) => {
   console.log('查看图片:', imageUrl)
 }
 
+const shouldShowMore = (post) => {
+  const content = String(post?.content || '')
+  const normalized = content.replace(/\r/g, '')
+  const lineCount = normalized.split('\n').length
+  return normalized.length > 120 || lineCount > 4
+}
+
 onMounted(() => {
   loadPosts(true)
 })
@@ -251,9 +269,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  align-items: center;
 }
 
 .post-card {
+  width: min(100%, 760px);
   background: var(--surface-solid);
   border-radius: var(--radius-md);
   padding: 18px 18px 14px;
@@ -261,6 +281,14 @@ onMounted(() => {
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  overflow: hidden;
+}
+
+.post-card:has(.image-grid) {
+  height: 468px;
 }
 
 .post-card:hover {
@@ -319,16 +347,39 @@ onMounted(() => {
 }
 
 .post-content {
-  margin-bottom: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
 }
 
 .text-content {
   font-size: 15px;
   color: var(--ink-muted);
   line-height: 1.65;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   white-space: pre-wrap;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.65em * 4);
+}
+
+.read-more {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.read-more:hover {
+  opacity: 0.85;
+  text-decoration: underline;
 }
 
 .lock-banner {
@@ -347,23 +398,39 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
+  margin-top: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 240px;
+  align-content: stretch;
 }
 
-.image-grid.single {
+.image-grid.image-count-1 {
   grid-template-columns: 1fr;
+  height: 292px;
+}
+
+.image-grid.image-count-2,
+.image-grid.image-count-3,
+.image-grid.image-count-4 {
+  grid-template-columns: repeat(2, 1fr);
+  height: 268px;
+}
+
+.image-grid.image-count-5 {
+  grid-template-columns: repeat(3, 1fr);
+  height: 248px;
 }
 
 .image-item {
-  aspect-ratio: 1;
-  overflow: hidden;
   border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid var(--border-subtle);
-}
-
-.image-item.single {
-  max-width: 400px;
-  aspect-ratio: auto;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 .image-item :deep(.el-image) {
@@ -372,10 +439,19 @@ onMounted(() => {
   display: block;
 }
 
+.image-item :deep(.el-image__inner) {
+  object-fit: contain !important;
+  object-position: left center;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+}
+
 .post-footer {
   border-top: 1px solid var(--border-subtle);
   padding-top: 14px;
   margin-top: 2px;
+  flex: 0 0 auto;
 }
 
 .action-buttons {

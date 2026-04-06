@@ -1,5 +1,20 @@
 import service from './request'
 
+const formDataConfig = {
+  transformRequest: [
+    (data, headers) => {
+      if (typeof FormData !== 'undefined' && data instanceof FormData) {
+        if (headers && typeof headers.delete === 'function') {
+          headers.delete('Content-Type')
+        } else if (headers) {
+          delete headers['Content-Type']
+        }
+      }
+      return data
+    }
+  ]
+}
+
 export const postApi = {
   getRecommendedPosts(pageNum, pageSize) {
     return service.get('/post/recommended', {
@@ -53,12 +68,24 @@ export const postApi = {
     return service.delete(`/post/${postId}/like`)
   },
 
+  uploadImage(formData) {
+    return service.post('/post/image/upload', formData, formDataConfig)
+  },
+
   publishPost(content, imageUrls, visibility) {
     return service.post('/post', {
       content,
       imageUrls,
       visibility
     })
+  },
+
+  updatePost(postId, payload) {
+    return service.put(`/post/${postId}`, payload)
+  },
+
+  deletePost(postId) {
+    return service.delete(`/post/${postId}`)
   }
 }
 

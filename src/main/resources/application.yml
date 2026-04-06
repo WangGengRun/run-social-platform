@@ -1,6 +1,10 @@
 spring:
   application:
     name: run-social-platform
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
   profiles:
     active: local
   datasource:

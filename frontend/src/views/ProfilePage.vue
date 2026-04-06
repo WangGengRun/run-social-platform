@@ -83,6 +83,13 @@
               <div class="post-content">
                 <div v-if="isLockedPost(post)" class="lock-banner">🔒 校友可见内容，完成校友认证后可查看</div>
                 <div class="text-content">{{ post.content }}</div>
+                <div
+                  v-if="!isLockedPost(post) && shouldShowMore(post)"
+                  class="read-more"
+                  @click.stop="handlePostClick(post)"
+                >
+                  查看更多
+                </div>
                 
                 <div v-if="post.imageUrlList && post.imageUrlList.length > 0" class="image-grid">
                   <div
@@ -104,25 +111,38 @@
               </div>
               
               <div class="post-footer">
-                <div class="action-buttons">
-                  <div
-                    class="action-button"
-                    :class="{ 'liked': post.isLiked }"
-                    @click.stop="handleLikeClick(post)"
-                  >
-                    <el-icon>
-                      <component :is="post.isLiked ? 'StarFilled' : 'Star'" />
-                    </el-icon>
-                    <span>{{ post.likeCount || 0 }}</span>
+                <div class="action-row">
+                  <div class="action-buttons">
+                    <div
+                      class="action-button"
+                      :class="{ 'liked': post.isLiked }"
+                      @click.stop="handleLikeClick(post)"
+                    >
+                      <el-icon>
+                        <component :is="post.isLiked ? 'StarFilled' : 'Star'" />
+                      </el-icon>
+                      <span>{{ post.likeCount || 0 }}</span>
+                    </div>
+                    
+                    <div
+                      class="action-button"
+                      @click.stop="handleCommentClick(post)"
+                    >
+                      <el-icon><ChatDotRound /></el-icon>
+                      <span>{{ post.commentCount || 0 }}</span>
+                    </div>
                   </div>
-                  
-                  <div
-                    class="action-button"
-                    @click.stop="handleCommentClick(post)"
-                  >
-                    <el-icon><ChatDotRound /></el-icon>
-                    <span>{{ post.commentCount || 0 }}</span>
-                  </div>
+                  <el-dropdown v-if="isSelfPost(post)" @command="(cmd) => handlePostCommand(cmd, post)">
+                    <span class="post-more-trigger" @click.stop>
+                      <el-icon><MoreFilled /></el-icon>
+                    </span>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="edit">编辑动态</el-dropdown-item>
+                        <el-dropdown-item command="delete" divided>删除动态</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </div>
               </div>
             </div>
@@ -234,18 +254,45 @@
         <el-button type="primary" :loading="verifySubmitting" @click="submitVerify">提交申请</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="editPostDialogVisible" title="编辑动态" width="620px">
+      <el-form :model="editPostForm" label-width="76px">
+        <el-form-item label="动态内容">
+          <el-input
+            v-model="editPostForm.content"
+            type="textarea"
+            :rows="5"
+            maxlength="2000"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="可见性">
+          <el-radio-group v-if="userStore.role !== 'USER'" v-model="editPostForm.visibility">
+            <el-radio-button :label="0">公开</el-radio-button>
+            <el-radio-button :label="1">仅校友</el-radio-button>
+            <el-radio-button :label="2">仅自己</el-radio-button>
+          </el-radio-group>
+          <el-tag v-else type="info">普通用户仅支持公开发布</el-tag>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editPostDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editPostSubmitting" @click="submitEditPost">保存并重新发布</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Loading, Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Loading, Star, StarFilled, ChatDotRound, MoreFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { alumniApi } from '../api/alumni'
 import { postApi } from '../api/post'
 import { authApi } from '../api/auth'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 import UserInfoCard from '../components/UserInfoCard.vue'
 import ProfileInfoTab from '../components/ProfileInfoTab.vue'
 import ResolvedAvatar from '../components/ResolvedAvatar.vue'
@@ -266,6 +313,13 @@ const isFollowing = ref(false)
 const hasMorePosts = ref(true)
 const postsPageNum = ref(1)
 const postsPageSize = ref(10)
+const editPostDialogVisible = ref(false)
+const editPostSubmitting = ref(false)
+const editingPostId = ref(null)
+const editPostForm = ref({
+  content: '',
+  visibility: 0
+})
 
 const followingList = ref([])
 const followersList = ref([])
@@ -571,6 +625,7 @@ const getUserPosts = async (refresh = false) => {
     
     if (response.code === 200) {
       const { list, total, pageNum, pageSize } = response.data
+      const normalizedList = await Promise.all((list || []).map(normalizePostImages))
       const totalNum = total != null ? Number(total) : 0
 
       // 动态总数（依赖后端 MyBatis-Plus 分页插件正确填充 total）
@@ -578,10 +633,10 @@ const getUserPosts = async (refresh = false) => {
       console.log('设置动态数:', totalNum)
       
       if (refresh) {
-        userPosts.value = list
+        userPosts.value = normalizedList
         // 如果用户信息为空，使用动态中的第一个用户信息
-        if (list.length > 0 && Object.keys(userInfo.value).length === 0) {
-          const firstPost = list[0]
+        if (normalizedList.length > 0 && Object.keys(userInfo.value).length === 0) {
+          const firstPost = normalizedList[0]
           userInfo.value = {
             userId: firstPost.userId,
             username: firstPost.username,
@@ -597,11 +652,11 @@ const getUserPosts = async (refresh = false) => {
           }
         }
       } else {
-        userPosts.value = [...userPosts.value, ...list]
+        userPosts.value = [...userPosts.value, ...normalizedList]
       }
       
       postsPageNum.value = pageNum + 1
-      hasMorePosts.value = list.length === pageSize
+      hasMorePosts.value = normalizedList.length === pageSize
     }
   } catch (error) {
     console.error('获取用户动态失败:', error)
@@ -682,6 +737,87 @@ const handleImageClick = (imageUrl, post) => {
     return
   }
   console.log('查看图片:', imageUrl)
+}
+
+const isSelfPost = (post) => String(post?.userId) === String(userStore.userId)
+
+const shouldShowMore = (post) => {
+  const content = String(post?.content || '')
+  const normalized = content.replace(/\r/g, '')
+  const lineCount = normalized.split('\n').length
+  return normalized.length > 120 || lineCount > 4
+}
+
+const normalizePostImages = async (post) => {
+  const imageUrlList = Array.isArray(post?.imageUrlList) ? post.imageUrlList : []
+  if (imageUrlList.length === 0) {
+    return post
+  }
+  const resolvedList = await Promise.all(imageUrlList.map((url) => resolveAvatarUrl(url)))
+  const displayList = resolvedList.map((item, index) => item || imageUrlList[index]).filter(Boolean)
+  return {
+    ...post,
+    imageRawUrlList: imageUrlList,
+    imageUrlList: displayList
+  }
+}
+
+const handlePostCommand = async (command, post) => {
+  if (command === 'edit') {
+    editingPostId.value = post.id
+    editPostForm.value = {
+      content: post.content || '',
+      visibility: userStore.role === 'USER' ? 0 : (post.visibility ?? 0)
+    }
+    editPostDialogVisible.value = true
+    return
+  }
+
+  if (command === 'delete') {
+    try {
+      await ElMessageBox.confirm('删除后将无法恢复，是否继续？', '删除动态', {
+        type: 'warning',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      })
+      await postApi.deletePost(post.id)
+      ElMessage.success('删除成功')
+      await getUserPosts(true)
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') {
+        console.error('删除动态失败:', error)
+        ElMessage.error('删除失败，请重试')
+      }
+    }
+  }
+}
+
+const submitEditPost = async () => {
+  const postId = editingPostId.value
+  if (!postId) return
+  const content = String(editPostForm.value.content || '').trim()
+  if (!content) {
+    ElMessage.warning('动态内容不能为空')
+    return
+  }
+  editPostSubmitting.value = true
+  try {
+    const target = userPosts.value.find((item) => item.id === postId)
+    const payload = {
+      content,
+      visibility: userStore.role === 'USER' ? 0 : Number(editPostForm.value.visibility ?? 0),
+      imageUrls: target?.imageRawUrlList || target?.imageUrlList || []
+    }
+    await postApi.updatePost(postId, payload)
+    ElMessage.success('动态已更新并重新发布')
+    editPostDialogVisible.value = false
+    await getUserPosts(true)
+  } catch (error) {
+    console.error('更新动态失败:', error)
+    ElMessage.error('更新失败，请重试')
+  } finally {
+    editPostSubmitting.value = false
+  }
 }
 
 const getVerifyTagType = (status) => {
@@ -932,9 +1068,11 @@ watch(verifyDialogVisible, (visible) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  align-items: center;
 }
 
 .post-card {
+  width: min(100%, 760px);
   background-color: #fff;
   border-radius: 8px;
   padding: 16px;
@@ -1015,9 +1153,28 @@ watch(verifyDialogVisible, (visible) => {
   font-size: 14px;
   color: #606266;
   line-height: 1.6;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   white-space: pre-wrap;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.6em * 4);
+}
+
+.read-more {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.read-more:hover {
+  opacity: 0.85;
+  text-decoration: underline;
 }
 
 .image-grid {
@@ -1053,9 +1210,31 @@ watch(verifyDialogVisible, (visible) => {
   padding-top: 12px;
 }
 
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .action-buttons {
   display: flex;
   gap: 24px;
+}
+
+.post-more-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: #909399;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.post-more-trigger:hover {
+  background: #f5f7fa;
+  color: #409eff;
 }
 
 .action-button {
