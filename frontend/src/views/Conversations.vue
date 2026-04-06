@@ -1,5 +1,7 @@
 <template>
-  <div class="conversations-container">
+  <div class="conversations-page">
+    <AppShellBar />
+    <div class="conversations-container alumni-page">
     <div class="conversations-header">
       <h2 class="page-title">消息</h2>
       <el-badge :value="totalUnreadCount" :hidden="!hasUnreadMessages" type="danger" class="unread-badge">
@@ -7,6 +9,7 @@
       </el-badge>
     </div>
 
+    <AlumniOnlyBlur :locked="isUserNonAlumni">
     <div v-if="loading" class="loading-container">
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>加载中...</span>
@@ -31,7 +34,7 @@
         @click="handleConversationClick(conversation.userId)"
       >
         <div class="conversation-avatar">
-          <el-avatar :size="50" :src="conversation.avatar" />
+          <ResolvedAvatar :size="50" :src="conversation.avatar || ''" />
           <span v-if="conversation.online" class="online-indicator"></span>
         </div>
 
@@ -68,6 +71,8 @@
         <span>没有更多了</span>
       </div>
     </div>
+    </AlumniOnlyBlur>
+    </div>
   </div>
 </template>
 
@@ -78,10 +83,14 @@ import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { useMessageStore } from '../stores/message'
 import { useUserStore } from '../stores/user'
 import websocketManager from '../utils/websocket-manager'
+import ResolvedAvatar from '../components/ResolvedAvatar.vue'
+import AppShellBar from '../components/AppShellBar.vue'
+import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
 
 const router = useRouter()
 const messageStore = useMessageStore()
 const userStore = useUserStore()
+const isUserNonAlumni = computed(() => userStore.role === 'USER')
 
 const loading = ref(false)
 const hasMore = ref(true)
@@ -223,28 +232,31 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.conversations-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f7fa;
+.conversations-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversations-container {
+  flex: 1;
 }
 
 .conversations-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e4e7ed;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .page-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .unread-badge {
@@ -285,20 +297,24 @@ onUnmounted(() => {
 .conversation-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background-color: #fff;
-  border-radius: 8px;
+  gap: 14px;
+  padding: 18px 18px;
+  background: var(--surface-solid);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow 0.3s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .conversation-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
 
 .conversation-item.has-unread {
-  background-color: #f0f9ff;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(14, 165, 233, 0.05) 100%);
+  border-color: rgba(79, 70, 229, 0.15);
 }
 
 .conversation-avatar {

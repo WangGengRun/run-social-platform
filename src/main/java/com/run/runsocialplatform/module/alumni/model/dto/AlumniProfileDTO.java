@@ -42,4 +42,7 @@ public class AlumniProfileDTO {
 
     @Schema(description = "个人简介")
     private String bio;
+
+    @Schema(description = "头像URL")
+    private String avatar;
 }

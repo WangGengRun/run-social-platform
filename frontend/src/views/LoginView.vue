@@ -1,30 +1,33 @@
 <template>
-  <div class="login-container">
-    <div class="login-form-wrapper">
-      <h1 class="login-title">校友社交平台</h1>
-      <h2 class="login-subtitle">用户登录</h2>
+  <div class="auth-page login-container">
+    <div class="auth-card login-form-wrapper">
+      <div class="auth-brand">
+        <div class="auth-brand-mark">social</div>
+        <h1 class="auth-title">遇见校友</h1>
+        <p class="auth-subtitle">登录后继续与校友保持连接</p>
+      </div>
       
       <el-form
         :model="loginForm"
         :rules="loginRules"
         ref="loginFormRef"
-        label-width="80px"
+        label-width="0"
         class="login-form"
       >
-        <el-form-item label="用户名" prop="username">
+        <el-form-item prop="username">
           <el-input
             v-model="loginForm.username"
-            placeholder="请输入用户名"
+            placeholder="用户名"
             prefix-icon="User"
             size="large"
           />
         </el-form-item>
         
-        <el-form-item label="密码" prop="password">
+        <el-form-item prop="password">
           <el-input
             v-model="loginForm.password"
             type="password"
-            placeholder="请输入密码"
+            placeholder="密码"
             prefix-icon="Lock"
             show-password
             size="large"
@@ -144,69 +147,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
 .login-form-wrapper {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  width: 100%;
-  max-width: 400px;
-}
-
-.login-title {
-  font-size: 24px;
-  font-weight: bold;
-  color: #303133;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.login-subtitle {
-  font-size: 16px;
-  color: #606266;
-  text-align: center;
-  margin-bottom: 30px;
+  padding: 44px 40px 40px;
 }
 
 .login-form {
-  margin-top: 20px;
+  margin-top: 8px;
+}
+
+.login-form :deep(.el-form-item) {
+  margin-bottom: 20px;
 }
 
 .login-button {
   width: 100%;
   height: 48px;
   font-size: 16px;
+  margin-top: 4px;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
 }
 
 .register-link {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .register-link span {
-  color: #606266;
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 @media (max-width: 480px) {
   .login-form-wrapper {
-    padding: 20px;
-  }
-  
-  .login-title {
-    font-size: 20px;
-  }
-  
-  .login-subtitle {
-    font-size: 14px;
+    padding: 32px 22px 28px;
   }
 }
 </style>

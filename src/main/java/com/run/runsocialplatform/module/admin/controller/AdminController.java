@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.run.runsocialplatform.common.result.Result;
 import com.run.runsocialplatform.module.admin.model.dto.UserQueryDTO;
 import com.run.runsocialplatform.module.admin.model.vo.*;
+import com.run.runsocialplatform.security.utils.SecurityUtil;
 import com.run.runsocialplatform.module.admin.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,17 @@ public class AdminController {
         return Result.success(userList);
     }
 
+    @GetMapping("/users/alumni-verify/pending")
+    @Operation(summary = "获取待审核校友认证列表")
+    public Result<IPage<UserManageVO>> getPendingAlumniVerifyList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword) {
+        log.info("查询待审核校友认证：pageNum={}, pageSize={}, keyword={}", pageNum, pageSize, keyword);
+        IPage<UserManageVO> page = adminService.getPendingAlumniVerifyList(pageNum, pageSize, keyword);
+        return Result.success(page);
+    }
+
     @GetMapping("/users/{userId}")
     @Operation(summary = "获取用户详情")
     public Result<UserDetailVO> getUserDetail(@PathVariable Long userId) {
@@ -61,6 +73,17 @@ public class AdminController {
             @RequestParam String role) {
         log.info("更新用户角色：userId={}, role={}", userId, role);
         adminService.updateUserRole(userId, role);
+        return Result.success();
+    }
+
+    @PutMapping("/users/{userId}/alumni-verify")
+    @Operation(summary = "审核校友认证")
+    public Result<Void> auditAlumniVerify(
+            @PathVariable Long userId,
+            @RequestParam Integer verifyStatus,
+            @RequestParam(required = false) String verifyNotes) {
+        Long adminId = SecurityUtil.getCurrentUserId();
+        adminService.auditAlumniVerify(userId, verifyStatus, verifyNotes, adminId);
         return Result.success();
     }
 

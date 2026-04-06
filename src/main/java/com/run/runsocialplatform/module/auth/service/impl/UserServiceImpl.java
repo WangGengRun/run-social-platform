@@ -6,15 +6,20 @@ import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.exception.BusinessException;
+import com.run.runsocialplatform.module.alumni.mapper.AlumniProfileMapper;
+import com.run.runsocialplatform.module.alumni.model.entity.AlumniInfo;
 import com.run.runsocialplatform.module.auth.mapper.UserMapper;
+import com.run.runsocialplatform.module.auth.model.dto.AlumniVerifyDTO;
 import com.run.runsocialplatform.module.auth.model.dto.LoginDTO;
 import com.run.runsocialplatform.module.auth.model.dto.RegisterDTO;
 import com.run.runsocialplatform.module.auth.model.entity.UserEntity;
+import com.run.runsocialplatform.module.auth.model.vo.AlumniVerifyStatusVO;
 import com.run.runsocialplatform.module.auth.model.vo.LoginResultVO;
 import com.run.runsocialplatform.module.auth.model.vo.UserInfoVO;
 import com.run.runsocialplatform.module.auth.service.CaptchaService;
 import com.run.runsocialplatform.module.auth.service.UserService;
 import com.run.runsocialplatform.security.utils.JwtUtil;
+import com.run.runsocialplatform.security.utils.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -37,6 +42,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
     private final RedisTemplate<String, String> redisTemplate;
     private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
+    private final AlumniProfileMapper alumniProfileMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -46,15 +52,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         // 验证两次密码是否一致
         if (!StrUtil.equals(registerDTO.getPassword(), registerDTO.getConfirmPassword())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "两次输入的密码不一致");
-        }
-
-        // 验证验证码（如果提供了）
-        if (StrUtil.isNotBlank(registerDTO.getCaptcha()) &&
-                StrUtil.isNotBlank(registerDTO.getCaptchaKey())) {
-
-            if (!captchaService.verifyCaptcha(registerDTO.getCaptchaKey(), registerDTO.getCaptcha())) {
-                throw new BusinessException(ResultCode.PARAM_ERROR, "验证码错误或已过期");
-            }
         }
 
         // 检查用户名是否存在
@@ -67,11 +64,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
             throw new BusinessException(ResultCode.EMAIL_EXISTS);
         }
 
-        // 检查手机号是否存在
-        if (StrUtil.isNotBlank(registerDTO.getPhone()) && checkPhoneExists(registerDTO.getPhone())) {
-            throw new BusinessException(ResultCode.PHONE_EXISTS);
-        }
-
         // 创建用户实体
         UserEntity user = new UserEntity();
         BeanUtils.copyProperties(registerDTO, user);
@@ -80,7 +72,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         user.setPassword(BCrypt.hashpw(registerDTO.getPassword()));
 
         // 设置默认角色和状态
-        user.setRole("ALUMNI");
+        user.setRole("USER");
         user.setStatus(1);
 
         // 保存用户
@@ -126,6 +118,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         // 生成JWT Token
         String token = generateToken(user);
 
+        // 确保角色与认证状态一致（历史数据纠偏：认证通过即ALUMNI）
+        AlumniInfo alumniInfo = alumniProfileMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AlumniInfo>()
+                        .eq(AlumniInfo::getUserId, user.getId())
+        );
+        String normalizedRole = normalizeRoleByVerifyStatus(user, alumniInfo);
+
         // 构建登录结果
         LoginResultVO resultVO = new LoginResultVO();
         resultVO.setToken(token);
@@ -133,8 +132,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         resultVO.setExpiresIn(jwtUtil.getExpirationFromToken(token));
         resultVO.setUserId(user.getId());
         resultVO.setUsername(user.getUsername());
-        resultVO.setRole(user.getRole());
-        resultVO.setUserInfo(convertToUserInfoVO(user));
+        resultVO.setRole(normalizedRole);
+        resultVO.setUserInfo(convertToUserInfoVO(user, normalizedRole));
 
         log.info("用户登录成功: {}, Token已生成", user.getUsername());
         return resultVO;
@@ -178,19 +177,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
     /**
      * 转换用户信息到VO
      */
-    private UserInfoVO convertToUserInfoVO(UserEntity user) {
+    private UserInfoVO convertToUserInfoVO(UserEntity user, String role) {
         UserInfoVO userInfo = new UserInfoVO();
         userInfo.setId(user.getId());
         userInfo.setUsername(user.getUsername());
         userInfo.setEmail(user.getEmail());
         userInfo.setPhone(user.getPhone());
         userInfo.setAvatar(user.getAvatar());
-        userInfo.setRole(user.getRole());
+        userInfo.setRole(role);
         userInfo.setLastLoginTime(user.getLastLoginTime());
         userInfo.setCreatedAt(user.getCreatedAt());
 
-        // TODO: 可以在这里查询校友认证状态并设置
-        userInfo.setAlumniVerifyStatus(0); // 默认为未认证
+        AlumniInfo alumniInfo = alumniProfileMapper.selectWithUserInfo(user.getId());
+        userInfo.setAlumniVerifyStatus(alumniInfo == null ? -1 : alumniInfo.getVerifyStatus());
 
         return userInfo;
     }
@@ -279,6 +278,116 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         return lambdaQuery()
                 .eq(UserEntity::getUsername, username)
                 .one();
+    }
+
+    @Override
+    public void setAvatar(String objectName) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        UserEntity user = baseMapper.selectById(currentUserId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+        }
+        // 更新密码
+        user.setAvatar(objectName);
+        baseMapper.updateById(user);
+
+        log.info("用户修改头像成功，用户ID: {}", currentUserId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitAlumniVerify(AlumniVerifyDTO verifyDTO) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        UserEntity user = baseMapper.selectById(currentUserId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+        }
+        if ("ADMIN".equals(user.getRole())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "管理员无需提交校友认证");
+        }
+
+        AlumniInfo alumniInfo = alumniProfileMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AlumniInfo>()
+                        .eq(AlumniInfo::getUserId, currentUserId)
+        );
+        if (alumniInfo == null) {
+            alumniInfo = new AlumniInfo();
+            alumniInfo.setUserId(currentUserId);
+        }
+
+        int count = alumniProfileMapper.countByStudentIdExcludeUser(verifyDTO.getStudentId(), currentUserId);
+        if (count > 0) {
+            throw new BusinessException(ResultCode.STUDENT_ID_EXISTS, "学号已被其他用户使用");
+        }
+
+        alumniInfo.setRealName(verifyDTO.getRealName());
+        alumniInfo.setStudentId(verifyDTO.getStudentId());
+        alumniInfo.setAdmissionYear(verifyDTO.getAdmissionYear());
+        alumniInfo.setGraduationYear(verifyDTO.getGraduationYear());
+        alumniInfo.setCollege(verifyDTO.getCollege());
+        alumniInfo.setMajor(verifyDTO.getMajor());
+        alumniInfo.setCompany(verifyDTO.getCompany());
+        alumniInfo.setPosition(verifyDTO.getPosition());
+        alumniInfo.setCity(verifyDTO.getCity());
+        alumniInfo.setBio(verifyDTO.getBio());
+        alumniInfo.setVerifyStatus(0);
+        alumniInfo.setVerifyNotes(null);
+        alumniInfo.setVerifyTime(null);
+        alumniInfo.setVerifyAdminId(null);
+
+        if (alumniInfo.getId() == null) {
+            alumniProfileMapper.insert(alumniInfo);
+        } else {
+            alumniProfileMapper.updateById(alumniInfo);
+        }
+    }
+
+    @Override
+    public AlumniVerifyStatusVO getCurrentAlumniVerifyStatus() {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        UserEntity user = baseMapper.selectById(currentUserId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+        }
+
+        AlumniInfo alumniInfo = alumniProfileMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AlumniInfo>()
+                        .eq(AlumniInfo::getUserId, currentUserId)
+        );
+
+        AlumniVerifyStatusVO vo = new AlumniVerifyStatusVO();
+        String normalizedRole = normalizeRoleByVerifyStatus(user, alumniInfo);
+        vo.setRole(normalizedRole);
+        if (alumniInfo == null) {
+            vo.setVerifyStatus(-1);
+            return vo;
+        }
+        vo.setVerifyStatus(alumniInfo.getVerifyStatus());
+        vo.setVerifyNotes(alumniInfo.getVerifyNotes());
+        vo.setVerifyTime(alumniInfo.getVerifyTime());
+        return vo;
+    }
+
+    /**
+     * 角色与认证状态一致性处理：
+     * 1) 管理员保持ADMIN，不参与校友角色自动切换
+     * 2) 认证通过(verifyStatus=1) => ALUMNI
+     * 3) 未通过/未提交 => USER
+     */
+    private String normalizeRoleByVerifyStatus(UserEntity user, AlumniInfo alumniInfo) {
+        if ("ADMIN".equals(user.getRole())) {
+            return "ADMIN";
+        }
+        String expectedRole = (alumniInfo != null && Integer.valueOf(1).equals(alumniInfo.getVerifyStatus()))
+                ? "ALUMNI" : "USER";
+        if (!expectedRole.equals(user.getRole())) {
+            UserEntity update = new UserEntity();
+            update.setId(user.getId());
+            update.setRole(expectedRole);
+            userMapper.updateById(update);
+            user.setRole(expectedRole);
+        }
+        return expectedRole;
     }
 
     /**

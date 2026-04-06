@@ -111,14 +111,16 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
             throw new BusinessException(ResultCode.USER_NOT_EXIST, "校友信息不存在");
         }
 
-        // 如果不是本人，检查可见性（这里可以扩展隐私设置）
-        if (!profile.getIsSelf()) {
-            // 检查校友是否已验证
-            if (profile.getVerifyStatus() != 1) {
-                throw new BusinessException(ResultCode.ALUMNI_NOT_VERIFIED, "该校友信息未通过验证");
-            }
-        }
+        return profile;
+    }
 
+    @Override
+    public AlumniProfileVO getAlumniProfileByUserId(Long userId) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        AlumniProfileVO profile = alumniProfileMapper.selectAlumniDetailByUserId(userId, currentUserId);
+        if (profile == null) {
+            throw new BusinessException(ResultCode.USER_NOT_EXIST, "用户不存在");
+        }
         return profile;
     }
 

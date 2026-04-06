@@ -27,6 +27,9 @@ public class PostVO {
     @Schema(description = "发布者头像")
     private String avatar;
 
+    @Schema(description = "发布者角色")
+    private String userRole;
+
     @Schema(description = "动态内容")
     private String content;
 
@@ -53,6 +56,9 @@ public class PostVO {
 
     @Schema(description = "是否是本人发布的")
     private Boolean isSelf = false;
+
+    @Schema(description = "当前用户是否被限制查看（需要校友认证）")
+    private Boolean locked = false;
 
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;

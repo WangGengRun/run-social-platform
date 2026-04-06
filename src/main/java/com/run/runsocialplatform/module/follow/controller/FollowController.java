@@ -71,7 +71,7 @@ public class FollowController {
 
     @GetMapping("/user/{userId}/following")
     @Operation(summary = "获取指定用户的关注列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<FollowListVO>> getUserFollowingList(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -82,7 +82,7 @@ public class FollowController {
 
     @GetMapping("/user/{userId}/follower")
     @Operation(summary = "获取指定用户的粉丝列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<FollowListVO>> getUserFollowerList(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -102,7 +102,7 @@ public class FollowController {
 
     @GetMapping("/stats/{userId}")
     @Operation(summary = "获取指定用户的关注统计信息")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<FollowStatsVO> getUserFollowStats(@PathVariable Long userId) {
         FollowStatsVO stats = followService.getFollowStats(userId);
         return Result.success(stats);

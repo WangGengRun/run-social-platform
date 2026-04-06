@@ -15,12 +15,12 @@
 <style scoped>
 .app-container {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background: var(--app-mesh);
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.28s ease;
 }
 
 .fade-enter-from,

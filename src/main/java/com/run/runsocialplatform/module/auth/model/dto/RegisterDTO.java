@@ -13,7 +13,7 @@ public class RegisterDTO {
 
     @NotBlank(message = "用户名不能为空")
     @Length(min = 4, max = 20, message = "用户名长度4-20个字符")
-    @Pattern(regexp = "^[a-zA-Z0-9_\u4e00-\u9fa5]+$", message = "用户名只能包含字母、数字、中文和下划线")
+//    @Pattern(regexp = "^[a-zA-Z0-9_\u4e00-\u9fa5]+$", message = "用户名只能包含字母、数字、中文和下划线")
     @Schema(description = "用户名", example = "zhangsan_123张三")
     private String username;
 
@@ -29,17 +29,4 @@ public class RegisterDTO {
     @Email(message = "邮箱格式不正确")
     @Schema(description = "邮箱", example = "zhangsan@example.com")
     private String email;
-
-    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
-    @Schema(description = "手机号", example = "13800138000")
-    private String phone;
-
-    @Schema(description = "验证码", example = "123456")
-    private String captcha;
-
-    @Schema(description = "验证码Key", example = "uuid")
-    private String captchaKey;
-
-    @Schema(description = "验证码类型", example = "SMS", allowableValues = {"SMS", "EMAIL"})
-    private String captchaType = "SMS";
 }

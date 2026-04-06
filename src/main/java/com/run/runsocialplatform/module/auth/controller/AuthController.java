@@ -3,8 +3,10 @@ import cn.hutool.core.lang.UUID;
 import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.common.result.Result;
+import com.run.runsocialplatform.module.auth.model.dto.AlumniVerifyDTO;
 import com.run.runsocialplatform.module.auth.model.dto.LoginDTO;
 import com.run.runsocialplatform.module.auth.model.dto.RegisterDTO;
+import com.run.runsocialplatform.module.auth.model.vo.AlumniVerifyStatusVO;
 import com.run.runsocialplatform.module.auth.model.vo.CaptchaVO;
 import com.run.runsocialplatform.module.auth.model.vo.LoginResultVO;
 import com.run.runsocialplatform.module.auth.service.CaptchaService;
@@ -116,6 +118,21 @@ public class AuthController {
 
         userService.resetPassword(email, newPassword, captcha);
         return Result.success();
+    }
+
+    @PostMapping("/alumni/verify")
+    @Operation(summary = "提交校友认证")
+    @PreAuthorize("hasAuthority('USER')")
+    public Result<Void> submitAlumniVerify(@Valid @RequestBody AlumniVerifyDTO verifyDTO) {
+        userService.submitAlumniVerify(verifyDTO);
+        return Result.success();
+    }
+
+    @GetMapping("/alumni/verify/status")
+    @Operation(summary = "获取当前用户校友认证状态")
+    @PreAuthorize("isAuthenticated()")
+    public Result<AlumniVerifyStatusVO> getAlumniVerifyStatus() {
+        return Result.success(userService.getCurrentAlumniVerifyStatus());
     }
 
     /**

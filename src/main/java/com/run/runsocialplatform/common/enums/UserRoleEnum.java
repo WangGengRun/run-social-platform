@@ -8,6 +8,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum UserRoleEnum {
 
+    USER("USER", "普通用户"),
     ADMIN("ADMIN", "管理员"),
     ALUMNI("ALUMNI", "校友");
 
@@ -23,6 +24,6 @@ public enum UserRoleEnum {
                 return role;
             }
         }
-        return ALUMNI; // 默认返回校友
+        return USER; // 默认返回普通用户
     }
 }

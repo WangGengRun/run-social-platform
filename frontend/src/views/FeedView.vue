@@ -1,58 +1,49 @@
 <template>
-  <div class="feed-container">
-    <div class="feed-header">
-      <h1 class="feed-title">活动广场</h1>
-      <div class="header-actions">
-        <el-button type="primary" @click="handlePublishClick" class="publish-button">
-          <el-icon><Plus /></el-icon>
-          发布动态
-        </el-button>
-        <div class="message-icon" @click="handleMessageClick">
-          <el-badge :value="totalUnreadCount" :hidden="!hasUnreadMessages" type="danger" class="message-badge">
-            <el-icon class="icon"><ChatDotRound /></el-icon>
-          </el-badge>
-        </div>
-        <div class="user-avatar" @click="handleAvatarClick">
-          <el-avatar :size="40" :src="userStore.userInfo?.avatar || ''">{{ userStore.username?.[0] || '用' }}</el-avatar>
-        </div>
-      </div>
-    </div>
+  <div class="feed-page">
+    <AppShellBar />
 
-    <el-tabs v-model="activeTab" class="feed-tabs" @tab-change="handleTabChange">
-      <el-tab-pane label="推荐" name="recommended">
-        <PostList type="recommended" />
-      </el-tab-pane>
-      <el-tab-pane label="关注" name="following">
-        <PostList type="following" />
-      </el-tab-pane>
-      <el-tab-pane label="热门" name="hot">
-        <PostList type="hot" />
-      </el-tab-pane>
-    </el-tabs>
+    <main class="feed-main alumni-page">
+      <header class="feed-hero">
+        <div class="feed-hero-row">
+          <h1 class="feed-title">动态圈</h1>
+          <p class="feed-desc">校友动态广场</p>
+        </div>
+      </header>
+
+      <div class="tabs-panel">
+        <el-tabs v-model="activeTab" class="premium-tabs" @tab-change="handleTabChange">
+          <el-tab-pane label="全部" name="recommended">
+            <div class="feed-with-sidebar">
+              <div class="feed-left">
+                <PostList type="recommended" />
+              </div>
+              <div class="feed-right">
+                <HotPostsPanel />
+              </div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane v-if="showFollowingTab" label="关注" name="following">
+            <PostList type="following" />
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Plus, ChatDotRound } from '@element-plus/icons-vue'
-import { useUserStore } from '../stores/user'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useMessageStore } from '../stores/message'
-import { alumniApi } from '../api/alumni'
+import { useUserStore } from '../stores/user'
 import websocketManager from '../utils/websocket-manager'
 import PostList from '../components/PostList.vue'
+import AppShellBar from '../components/AppShellBar.vue'
+import HotPostsPanel from '../components/HotPostsPanel.vue'
 
-const router = useRouter()
-const userStore = useUserStore()
 const messageStore = useMessageStore()
+const userStore = useUserStore()
 const activeTab = ref('recommended')
-
-const totalUnreadCount = computed(() => messageStore.totalUnreadCount)
-const hasUnreadMessages = computed(() => messageStore.hasUnreadMessages)
-
-const handleMessageClick = () => {
-  router.push('/message')
-}
+const showFollowingTab = computed(() => userStore.role === 'ALUMNI')
 
 const handleNewMessage = (data) => {
   const { senderId } = data
@@ -60,19 +51,18 @@ const handleNewMessage = (data) => {
 }
 
 const handleReadReceipt = (data) => {
-  const { userId, lastReadTime } = data
+  const { userId } = data
   const previousCount = messageStore.unreadCounts.get(userId) || 0
   if (previousCount > 0) {
     messageStore.decreaseUnreadCountByUserId(userId, previousCount)
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
   const token = localStorage.getItem('token')
-  if (token) {
-      messageStore.connectWebSocket(token)
+  if (token && userStore.role === 'ALUMNI') {
+    messageStore.connectWebSocket(token)
     messageStore.fetchUnreadCounts()
-
     websocketManager.on('message', handleNewMessage)
     websocketManager.on('read', handleReadReceipt)
   }
@@ -83,140 +73,142 @@ onUnmounted(() => {
   websocketManager.off('read', handleReadReceipt)
 })
 
-const handleTabChange = (tabName) => {
-  console.log('切换到:', tabName)
-}
-
-const handlePublishClick = () => {
-  router.push('/post/publish')
-}
-
-const handleAvatarClick = async () => {
-  try {
-    const response = await alumniApi.getCurrentProfile()
-    console.log('获取校友信息响应:', response)
-
-    if (response.code === 200 && response.data) {
-      if (response.data.id) {
-        const alumniId = response.data.id
-        console.log('使用校友ID:', alumniId)
-        router.push(`/profile/${alumniId}`)
-      } else {
-        console.log('校友信息中没有id字段，使用store中的用户ID:', userStore.userId)
-        router.push(`/profile/${userStore.userId}`)
-      }
-    } else {
-      console.log('获取校友信息失败，使用store中的用户ID:', userStore.userId)
-      router.push(`/profile/${userStore.userId}`)
-    }
-  } catch (error) {
-    console.error('获取校友信息失败:', error)
-    console.log('发生错误，使用store中的用户ID:', userStore.userId)
-    router.push(`/profile/${userStore.userId}`)
-  }
-}
+const handleTabChange = () => {}
 </script>
 
 <style scoped>
-.feed-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f7fa;
+.feed-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.feed-header {
+.feed-main {
+  flex: 1;
+}
+
+.feed-hero {
+  margin-bottom: 14px;
+  padding: 4px 2px 0;
+}
+
+.feed-hero-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 6px 16px;
 }
 
 .feed-title {
-  font-size: 24px;
-  font-weight: bold;
-  color: #303133;
   margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.3;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.publish-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.user-avatar {
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.user-avatar:hover {
-  transform: scale(1.05);
-}
-
-.message-icon {
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.message-icon:hover {
-  transform: scale(1.05);
-}
-
-.message-badge {
-  font-size: 20px;
-  color: #909399;
-  transition: color 0.3s;
-}
-
-.message-badge:hover {
-  color: #409eff;
-}
-
-.message-badge .icon {
-  font-size: 20px;
-}
-
-.feed-tabs {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.feed-tabs :deep(.el-tabs__header) {
+.feed-desc {
   margin: 0;
-  padding: 0 20px;
-  border-bottom: 1px solid #e4e7ed;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.feed-tabs :deep(.el-tabs__nav-wrap::after) {
+.tabs-panel {
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.premium-tabs {
+  --tab-accent: var(--accent);
+}
+
+.premium-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  padding: 0 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(248, 249, 252, 0.9) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.premium-tabs :deep(.el-tabs__nav-wrap::after) {
   display: none;
 }
 
-.feed-tabs :deep(.el-tabs__item) {
-  height: 50px;
-  line-height: 50px;
-  font-size: 16px;
-  color: #606266;
+.premium-tabs :deep(.el-tabs__nav-scroll) {
+  padding: 0 8px;
 }
 
-.feed-tabs :deep(.el-tabs__item.is-active) {
-  color: #409eff;
-  font-weight: bold;
+.premium-tabs :deep(.el-tabs__item) {
+  height: 46px;
+  line-height: 46px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  padding: 0 20px;
 }
 
-.feed-tabs :deep(.el-tabs__active-bar) {
-  background-color: #409eff;
+.premium-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--accent);
+  font-weight: 700;
 }
 
-.feed-tabs :deep(.el-tabs__content) {
+.premium-tabs :deep(.el-tabs__active-bar) {
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, #4f46e5, #0ea5e9);
+}
+
+.premium-tabs :deep(.el-tabs__content) {
   padding: 0;
+}
+
+.premium-tabs :deep(.el-tab-pane) {
+  min-height: min(640px, calc(100vh - var(--shell-h) - 132px));
+}
+
+@media (max-width: 640px) {
+  .feed-hero-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .feed-desc {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+.feed-with-sidebar {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.feed-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-right {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1020px) {
+  .feed-with-sidebar {
+    flex-direction: column;
+  }
+  .feed-right {
+    width: 100%;
+  }
 }
 </style>

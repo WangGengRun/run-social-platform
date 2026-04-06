@@ -17,6 +17,9 @@ public class AlumniProfileVO {
     @Schema(description = "用户名")
     private String username;
 
+    @Schema(description = "用户角色：USER/ALUMNI/ADMIN")
+    private String role;
+
     @Schema(description = "真实姓名")
     private String realName;
 

@@ -16,7 +16,7 @@ public interface PostMapper extends BaseMapper<Post> {
      * 查询关注的人的动态列表
      */
     IPage<PostVO> selectFollowingPosts(Page<PostVO> page,
-                                       @Param("userId") Long userId);
+                                       @Param("currentUserId") Long currentUserId);
 
     /**
      * 查询推荐动态列表（公开的动态，按时间倒序）

@@ -36,6 +36,12 @@ public interface AlumniProfileMapper extends BaseMapper<AlumniInfo> {
                                        @Param("currentUserId") Long currentUserId);
 
     /**
+     * 根据用户ID查询校友详情（路径参数为 user.id）
+     */
+    AlumniProfileVO selectAlumniDetailByUserId(@Param("userId") Long userId,
+                                               @Param("currentUserId") Long currentUserId);
+
+    /**
      * 检查学号是否已存在
      */
     @Select("SELECT COUNT(*) FROM alumni_info WHERE student_id = #{studentId} " +

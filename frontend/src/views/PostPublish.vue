@@ -1,6 +1,8 @@
 <template>
-  <div class="post-publish-container">
-    <el-card class="publish-card">
+  <div class="post-publish-page">
+    <AppShellBar />
+    <div class="post-publish-container alumni-page">
+    <el-card class="publish-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>发布动态</span>
@@ -65,11 +67,12 @@
               <span>可见性</span>
             </div>
             <div class="visibility-options">
-              <el-radio-group v-model="form.visibility" class="visibility-radio-group">
+              <el-radio-group v-if="!isUserRole" v-model="form.visibility" class="visibility-radio-group">
                 <el-radio-button label="0">公开</el-radio-button>
                 <el-radio-button label="1">仅校友</el-radio-button>
                 <el-radio-button label="2">仅自己</el-radio-button>
               </el-radio-group>
+              <el-tag v-else type="info">普通用户仅支持公开发布</el-tag>
             </div>
           </div>
         </div>
@@ -80,19 +83,24 @@
         </div>
       </div>
     </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Picture, View, Plus, Delete } from '@element-plus/icons-vue'
 import { postApi } from '../api/post'
+import { useUserStore } from '../stores/user'
+import AppShellBar from '../components/AppShellBar.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 const contentInput = ref()
 const loading = ref(false)
+const isUserRole = computed(() => userStore.role === 'USER')
 
 const form = ref({
   content: '',
@@ -146,7 +154,7 @@ const handleSubmit = async () => {
     const response = await postApi.publishPost(
       form.value.content,
       imageUrlList,
-      form.value.visibility
+      isUserRole.value ? 0 : form.value.visibility
     )
     
     if (response.code === 200) {
@@ -165,6 +173,9 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
+  if (isUserRole.value) {
+    form.value.visibility = 0
+  }
   // 自动获取焦点
   if (contentInput.value) {
     contentInput.value.focus()
@@ -173,21 +184,33 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.post-publish-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .post-publish-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 0 20px;
+  flex: 1;
 }
 
 .publish-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.publish-card :deep(.el-card__header) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .card-header {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .publish-form {

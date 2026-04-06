@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.3</version>
+        <version>3.4.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
@@ -65,10 +65,11 @@
         <artifactId>hutool-all</artifactId>
         <version>5.8.37</version>
     </dependency>
+    <!-- 暂时删除 Knife4j 依赖 -->
     <dependency>
-        <groupId>com.github.xiaoymin</groupId>
-        <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-        <version>4.4.0</version>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.7.0</version>
     </dependency>
 
     <!--阿里云百炼-灵积大模型服务-->
@@ -131,6 +132,12 @@
     <dependency>
         <groupId>com.baomidou</groupId>
         <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        <version>${mybatis-plus.version}</version>
+    </dependency>
+    <!-- 3.5.9+ 分页插件实现位于此模块，缺则无法解析 PaginationInnerInterceptor -->
+    <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-jsqlparser</artifactId>
         <version>${mybatis-plus.version}</version>
     </dependency>
     <dependency>

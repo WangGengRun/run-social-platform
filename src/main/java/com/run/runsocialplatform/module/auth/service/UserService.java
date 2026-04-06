@@ -1,9 +1,11 @@
 package com.run.runsocialplatform.module.auth.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.run.runsocialplatform.module.auth.model.dto.AlumniVerifyDTO;
 import com.run.runsocialplatform.module.auth.model.dto.LoginDTO;
 import com.run.runsocialplatform.module.auth.model.dto.RegisterDTO;
 import com.run.runsocialplatform.module.auth.model.entity.UserEntity;
+import com.run.runsocialplatform.module.auth.model.vo.AlumniVerifyStatusVO;
 import com.run.runsocialplatform.module.auth.model.vo.LoginResultVO;
 
 public interface UserService extends IService<UserEntity> {
@@ -64,4 +66,10 @@ public interface UserService extends IService<UserEntity> {
     void updateLastLoginTime(Long userId);
 
     UserEntity findByUsername(String username);
+
+    void setAvatar(String objectName);
+
+    void submitAlumniVerify(AlumniVerifyDTO verifyDTO);
+
+    AlumniVerifyStatusVO getCurrentAlumniVerifyStatus();
 }

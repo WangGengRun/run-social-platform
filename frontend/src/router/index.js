@@ -58,6 +58,30 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/activity',
+      name: 'activityList',
+      component: () => import('../views/ActivityList.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/activity/my',
+      name: 'activityMy',
+      component: () => import('../views/ActivityMy.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/activity/:id',
+      name: 'activityDetail',
+      component: () => import('../views/ActivityDetail.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/activity/:id/participants',
+      name: 'activityParticipants',
+      component: () => import('../views/ActivityParticipants.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/message',
       name: 'conversations',
       component: () => import('../views/Conversations.vue'),
@@ -84,6 +108,11 @@ const router = createRouter({
           path: 'users',
           name: 'UserManagement',
           component: () => import('../views/admin/UserManagement.vue')
+        },
+        {
+          path: 'alumni-verify',
+          name: 'AlumniVerifyAudit',
+          component: () => import('../views/admin/AlumniVerifyAudit.vue')
         },
         {
           path: 'content',

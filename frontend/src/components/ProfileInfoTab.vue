@@ -26,10 +26,10 @@
             <span class="info-label">毕业年份</span>
             <span class="info-value">{{ userInfo.graduationYear }}</span>
           </div>
-          <div v-if="userInfo.verifyStatus" class="info-item">
-            <span class="info-label">认证状态</span>
-            <el-tag :type="userInfo.verifyStatus === 'VERIFIED' ? 'success' : 'info'" size="small">
-              {{ userInfo.verifyStatus === 'VERIFIED' ? '已认证' : '未认证' }}
+          <div class="info-item">
+            <span class="info-label">身份标签</span>
+            <el-tag :type="isAlumni ? 'success' : 'info'" size="small">
+              {{ isAlumni ? '校友' : '普通用户' }}
             </el-tag>
           </div>
         </div>
@@ -78,12 +78,18 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
   userInfo: {
     type: Object,
     required: true
   }
 })
+
+const isAlumni = computed(() =>
+  props.userInfo?.role === 'ALUMNI' || props.userInfo?.verifyStatus === 1 || props.userInfo?.verifyStatus === 'VERIFIED'
+)
 </script>
 
 <style scoped>

@@ -30,8 +30,8 @@ service.interceptors.response.use(
   response => {
     const res = response.data
     if (res.code !== 200 && res.code !== 0) {
-      ElMessage.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
+      ElMessage.error(res.message || res.msg || '请求失败')
+      return Promise.reject(new Error(res.message || res.msg || '请求失败'))
     }
     return res
   },
@@ -39,29 +39,31 @@ service.interceptors.response.use(
     console.error('响应错误:', error)
     let message = '网络错误'
     if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          message = '未授权，请重新登录'
-          // 清除localStorage中的token
-          localStorage.removeItem('token')
-          localStorage.removeItem('userId')
-          localStorage.removeItem('username')
-          localStorage.removeItem('role')
-          localStorage.removeItem('userInfo')
-          // 跳转到登录页
-          window.location.href = '/login'
-          break
-        case 403:
-          message = '拒绝访问'
-          break
-        case 404:
-          message = '请求地址不存在'
-          break
-        case 500:
-          message = '服务器内部错误'
-          break
-        default:
-          message = `请求失败 (${error.response.status})`
+      const data = error.response.data
+      if (error.response.status === 401) {
+        message = '未授权，请重新登录'
+        localStorage.removeItem('token')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('username')
+        localStorage.removeItem('role')
+        localStorage.removeItem('userInfo')
+        window.location.href = '/login'
+      } else if (data && (typeof data.msg === 'string' || typeof data.message === 'string')) {
+        message = data.msg || data.message
+      } else {
+        switch (error.response.status) {
+          case 403:
+            message = '拒绝访问'
+            break
+          case 404:
+            message = '请求地址不存在'
+            break
+          case 500:
+            message = '服务器内部错误'
+            break
+          default:
+            message = `请求失败 (${error.response.status})`
+        }
       }
     }
     ElMessage.error(message)

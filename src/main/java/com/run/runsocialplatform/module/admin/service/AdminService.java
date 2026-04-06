@@ -11,9 +11,11 @@ public interface AdminService {
 
     // 用户管理
     IPage<UserManageVO> getUserList(Integer pageNum, Integer pageSize, UserQueryDTO queryDTO);
+    IPage<UserManageVO> getPendingAlumniVerifyList(Integer pageNum, Integer pageSize, String keyword);
     UserDetailVO getUserDetail(Long userId);
     void updateUserStatus(Long userId, Integer status);
     void updateUserRole(Long userId, String role);
+    void auditAlumniVerify(Long userId, Integer verifyStatus, String verifyNotes, Long verifyAdminId);
 
     // 内容审核
     IPage<PostAuditVO> getPostList(Integer pageNum, Integer pageSize, Integer status, String keyword);

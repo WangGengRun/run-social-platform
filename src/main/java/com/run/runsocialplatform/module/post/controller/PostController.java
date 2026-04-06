@@ -33,7 +33,7 @@ public class PostController {
 
     @PostMapping
     @Operation(summary = "发布动态")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Long> createPost(@Valid @RequestBody PostCreateDTO createDTO) {
         Long postId = postService.createPost(createDTO);
         return Result.success(postId);
@@ -41,7 +41,7 @@ public class PostController {
 
     @PutMapping("/{postId}")
     @Operation(summary = "更新动态")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> updatePost(@PathVariable Long postId,
                                     @Valid @RequestBody PostUpdateDTO updateDTO) {
         postService.updatePost(postId, updateDTO);
@@ -50,7 +50,7 @@ public class PostController {
 
     @DeleteMapping("/{postId}")
     @Operation(summary = "删除动态")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> deletePost(@PathVariable Long postId) {
         postService.deletePost(postId);
         return Result.success();
@@ -58,7 +58,7 @@ public class PostController {
 
     @GetMapping("/{postId}")
     @Operation(summary = "获取动态详情")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PostVO> getPostDetail(@PathVariable Long postId) {
         PostVO post = postService.getPostDetail(postId);
         return Result.success(post);
@@ -76,7 +76,7 @@ public class PostController {
 
     @GetMapping("/recommended")
     @Operation(summary = "获取推荐动态列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<PostVO>> getRecommendedPosts(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
@@ -86,7 +86,7 @@ public class PostController {
 
     @GetMapping("/hot")
     @Operation(summary = "获取热门动态列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<PostVO>> getHotPosts(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
@@ -96,7 +96,7 @@ public class PostController {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "获取指定用户的动态列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<PostVO>> getUserPosts(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -107,7 +107,7 @@ public class PostController {
 
     @GetMapping("/my")
     @Operation(summary = "获取我的动态列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<PostVO>> getMyPosts(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
@@ -117,7 +117,7 @@ public class PostController {
 
     @PostMapping("/{postId}/like")
     @Operation(summary = "点赞动态")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> likePost(@PathVariable Long postId) {
         interactionService.like(postId);
         return Result.success();
@@ -125,7 +125,7 @@ public class PostController {
 
     @DeleteMapping("/{postId}/like")
     @Operation(summary = "取消点赞")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> unlikePost(@PathVariable Long postId) {
         interactionService.unlike(postId);
         return Result.success();
@@ -133,7 +133,7 @@ public class PostController {
 
     @GetMapping("/{postId}/like/check")
     @Operation(summary = "检查是否已点赞")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Boolean> checkLike(@PathVariable Long postId) {
         boolean isLiked = interactionService.isLiked(postId);
         return Result.success(isLiked);
@@ -141,7 +141,7 @@ public class PostController {
 
     @PostMapping("/comment")
     @Operation(summary = "创建评论")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Long> createComment(@Valid @RequestBody CommentCreateDTO createDTO) {
         Long commentId = interactionService.createComment(createDTO);
         return Result.success(commentId);
@@ -149,7 +149,7 @@ public class PostController {
 
     @DeleteMapping("/comment/{commentId}")
     @Operation(summary = "删除评论")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> deleteComment(@PathVariable Long commentId) {
         interactionService.deleteComment(commentId);
         return Result.success();
@@ -157,7 +157,7 @@ public class PostController {
 
     @GetMapping("/{postId}/comments")
     @Operation(summary = "获取评论列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<List<CommentVO>> getComments(@PathVariable Long postId) {
         List<CommentVO> comments = interactionService.getComments(postId);
         return Result.success(comments);

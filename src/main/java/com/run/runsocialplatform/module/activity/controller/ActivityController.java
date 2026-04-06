@@ -57,14 +57,14 @@ public class ActivityController {
 
     @GetMapping("/{id}")
     @Operation(summary = "获取活动详情")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<ActivityDetailVO> detail(@PathVariable Long id) {
         return Result.success(activityService.detail(id));
     }
 
     @GetMapping("/list")
     @Operation(summary = "活动列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<ActivityListVO>> list(@RequestParam(defaultValue = "1") Integer pageNum,
                                                    @RequestParam(defaultValue = "20") Integer pageSize,
                                                    @RequestParam(required = false) Integer status,
@@ -75,7 +75,7 @@ public class ActivityController {
 
     @GetMapping("/my")
     @Operation(summary = "我创建的活动列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<ActivityListVO>> my(@RequestParam(defaultValue = "1") Integer pageNum,
                                                  @RequestParam(defaultValue = "20") Integer pageSize) {
         Page<ActivityListVO> page = activityService.listMyOrganized(pageNum, pageSize);
@@ -108,7 +108,7 @@ public class ActivityController {
 
     @GetMapping("/{id}/participants")
     @Operation(summary = "报名名单")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<ParticipantVO>> participants(@PathVariable Long id,
                                                           @RequestParam(defaultValue = "1") Integer pageNum,
                                                           @RequestParam(defaultValue = "50") Integer pageSize) {

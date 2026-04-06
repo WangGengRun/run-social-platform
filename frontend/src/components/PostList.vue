@@ -14,19 +14,27 @@
         v-for="post in posts.list"
         :key="post.id"
         class="post-card"
-        @click="handlePostClick(post.id)"
+        :class="{ locked: isLockedPost(post) }"
+        @click="handlePostClick(post)"
       >
         <div class="post-header">
           <div class="user-info" @click.stop="handleUserClick(post.userId)">
-            <el-avatar :size="40" :src="post.avatar" />
+            <ResolvedAvatar :size="40" :src="post.avatar || ''" class="avatar">
+              <span>{{ post.realName?.charAt(0) || post.username?.charAt(0) || '用' }}</span>
+            </ResolvedAvatar>
             <div class="user-details">
-              <div class="username">{{ post.realName || post.username }}</div>
+              <div class="username-row">
+                <div class="username">{{ post.realName || post.username }}</div>
+                <el-tag v-if="post.userRole === 'ALUMNI'" size="small" type="warning" effect="plain">校友</el-tag>
+                <el-tag v-else size="small" effect="plain">普通用户</el-tag>
+              </div>
               <div class="time">{{ formatTime(post.createdAt) }}</div>
             </div>
           </div>
         </div>
         
         <div class="post-content">
+          <div v-if="isLockedPost(post)" class="lock-banner">🔒 校友可见内容，完成校友认证后可查看</div>
           <div class="text-content">{{ post.content }}</div>
           
           <div v-if="post.imageUrlList && post.imageUrlList.length > 0" class="image-grid">
@@ -55,8 +63,20 @@
               :class="{ 'liked': post.isLiked }"
               @click.stop="handleLikeClick(post.id)"
             >
-              <el-icon v-if="post.isLiked"><GoodsFilled /></el-icon>
-              <el-icon v-else><Goods /></el-icon>
+              <svg
+                class="like-thumb"
+                :class="{ liked: post.isLiked }"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <!-- 简化拇指上扬图标（避免引入额外依赖） -->
+                <path
+                  fill="currentColor"
+                  d="M2 21h4V10H2v11zm20-11c0-1.1-.9-2-2-2h-3l1-6c.05-.25-.02-.51-.2-.69-.18-.18-.44-.25-.69-.2l-1 .2c-.36.07-.65.35-.75.7L13 9H9c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-11h2z"
+                />
+              </svg>
               <span>{{ post.likeCount || 0 }}</span>
             </div>
             
@@ -87,19 +107,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading, Goods, GoodsFilled, ChatDotRound } from '@element-plus/icons-vue'
+import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { usePostStore } from '../stores/post'
+import { useUserStore } from '../stores/user'
+import ResolvedAvatar from './ResolvedAvatar.vue'
 
 const props = defineProps({
   type: {
     type: String,
     required: true,
-    validator: (value) => ['recommended', 'following', 'hot'].includes(value)
+    validator: (value) => ['recommended', 'following'].includes(value)
   }
 })
 
 const router = useRouter()
 const postStore = usePostStore()
+const userStore = useUserStore()
 const postListRef = ref()
 
 const posts = computed(() => postStore.getPostsByType(props.type))
@@ -148,8 +171,6 @@ const loadPosts = async (refresh = false) => {
       await postStore.fetchRecommendedPosts(refresh)
     } else if (props.type === 'following') {
       await postStore.fetchFollowingPosts(refresh)
-    } else if (props.type === 'hot') {
-      await postStore.fetchHotPosts(refresh)
     }
   } catch (error) {
     console.error('加载动态失败:', error)
@@ -168,7 +189,19 @@ const handleLikeClick = async (postId) => {
   }
 }
 
-const handlePostClick = (postId) => {
+const isLockedPost = (post) => {
+  if (!post) return false
+  if (String(post.userId) === String(userStore.userId)) return false
+  if (userStore.role !== 'USER') return false
+  return post.locked === true || post.visibility === 1
+}
+
+const handlePostClick = (post) => {
+  if (isLockedPost(post)) {
+    ElMessage.warning('该动态仅校友可见，请先完成校友认证')
+    return
+  }
+  const postId = post.id
   router.push(`/post/${postId}`)
 }
 
@@ -192,9 +225,11 @@ onMounted(() => {
 
 <style scoped>
 .post-list {
-  height: calc(100vh - 50px);
+  max-height: calc(100vh - var(--shell-h) - 128px);
+  min-height: min(560px, calc(100vh - var(--shell-h) - 128px));
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px 22px 28px;
+  scroll-behavior: smooth;
 }
 
 .loading-container,
@@ -215,20 +250,36 @@ onMounted(() => {
 .posts {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .post-card {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--surface-solid);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 14px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow 0.3s;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .post-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(79, 70, 229, 0.12);
+}
+
+.post-card.locked {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.post-card.locked .text-content {
+  filter: blur(6px);
+  user-select: none;
+}
+
+.post-card.locked .image-item :deep(.el-image__inner) {
+  filter: blur(8px);
 }
 
 .post-header {
@@ -247,16 +298,24 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.username-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .username {
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
 .time {
   font-size: 12px;
-  color: #909399;
-  margin-top: 2px;
+  color: var(--ink-faint);
+  margin-top: 3px;
+  font-weight: 500;
 }
 
 .post-content {
@@ -264,12 +323,24 @@ onMounted(() => {
 }
 
 .text-content {
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.6;
+  font-size: 15px;
+  color: var(--ink-muted);
+  line-height: 1.65;
   margin-bottom: 12px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.lock-banner {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .image-grid {
@@ -285,8 +356,9 @@ onMounted(() => {
 .image-item {
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  border: 1px solid var(--border-subtle);
 }
 
 .image-item.single {
@@ -301,8 +373,9 @@ onMounted(() => {
 }
 
 .post-footer {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+  margin-top: 2px;
 }
 
 .action-buttons {
@@ -314,18 +387,28 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #909399;
+  color: var(--ink-faint);
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s;
+  transition: color 0.2s, transform 0.2s;
 }
 
 .action-button:hover {
-  color: #409eff;
+  color: var(--accent);
 }
 
 .action-button.liked {
-  color: #f56c6c;
+  color: #e11d48;
+}
+
+.like-thumb {
+  color: currentColor;
+  transition: transform 0.18s ease, color 0.2s ease;
+}
+
+.action-button.liked .like-thumb {
+  transform: translateY(-1px) scale(1.04);
 }
 
 .action-button .el-icon {

@@ -11,13 +11,22 @@
             u.username,
             a.real_name as realName,
             u.avatar,
-            p.content,
-            p.image_urls as imageUrls,
+            u.role as userRole,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN '该动态仅校友可见，完成校友认证后可查看'
+                ELSE p.content
+            END as content,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN NULL
+                ELSE p.image_urls
+            END as imageUrls,
             p.visibility,
             p.like_count as likeCount,
             p.comment_count as commentCount,
             CASE
-                WHEN p.user_id = #{userId} THEN true
+                WHEN p.user_id = #{currentUserId} THEN true
                 ELSE false
             END as isSelf,
             CASE
@@ -32,12 +41,13 @@
             p.updated_at as updatedAt
         FROM post p
         INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN user cu ON cu.id = #{currentUserId}
         LEFT JOIN alumni_info a ON u.id = a.user_id
-        INNER JOIN follow f ON f.follower_id = #{userId}
+        INNER JOIN follow f ON f.follower_id = #{currentUserId}
             AND f.followee_id = p.user_id
             AND f.status = 1
         LEFT JOIN post_interaction pi_like ON pi_like.post_id = p.id
-            AND pi_like.user_id = #{userId}
+            AND pi_like.user_id = #{currentUserId}
             AND pi_like.type = 1
             AND pi_like.status = 1
         WHERE p.status = 1
@@ -54,6 +64,7 @@
             u.username,
             a.real_name as realName,
             u.avatar,
+            u.role as userRole,
             p.content,
             p.image_urls as imageUrls,
             p.visibility,
@@ -71,10 +82,15 @@
                 WHEN f.id IS NOT NULL THEN true
                 ELSE false
             END as isFollowed,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId} THEN true
+                ELSE false
+            END as locked,
             p.created_at as createdAt,
             p.updated_at as updatedAt
         FROM post p
         INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN user cu ON cu.id = #{currentUserId}
         LEFT JOIN alumni_info a ON u.id = a.user_id
         LEFT JOIN follow f ON f.follower_id = #{currentUserId}
             AND f.followee_id = p.user_id
@@ -85,7 +101,11 @@
             AND pi_like.status = 1
         WHERE p.status = 1
           AND u.status = 1
-          AND p.visibility = 0
+          AND (
+              p.visibility = 0
+              OR p.user_id = #{currentUserId}
+              OR (p.visibility = 1 AND cu.role IN ('USER', 'ALUMNI', 'ADMIN'))
+          )
         ORDER BY p.created_at DESC
     </select>
 
@@ -97,8 +117,17 @@
             u.username,
             a.real_name as realName,
             u.avatar,
-            p.content,
-            p.image_urls as imageUrls,
+            u.role as userRole,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN '该动态仅校友可见，完成校友认证后可查看'
+                ELSE p.content
+            END as content,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN NULL
+                ELSE p.image_urls
+            END as imageUrls,
             p.visibility,
             p.like_count as likeCount,
             p.comment_count as commentCount,
@@ -114,10 +143,15 @@
                 WHEN f.id IS NOT NULL THEN true
                 ELSE false
             END as isFollowed,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId} THEN true
+                ELSE false
+            END as locked,
             p.created_at as createdAt,
             p.updated_at as updatedAt
         FROM post p
         INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN user cu ON cu.id = #{currentUserId}
         LEFT JOIN alumni_info a ON u.id = a.user_id
         LEFT JOIN follow f ON f.follower_id = #{currentUserId}
             AND f.followee_id = p.user_id
@@ -128,7 +162,11 @@
             AND pi_like.status = 1
         WHERE p.status = 1
           AND u.status = 1
-          AND p.visibility = 0
+          AND (
+              p.visibility = 0
+              OR p.user_id = #{currentUserId}
+              OR (p.visibility = 1 AND cu.role IN ('USER', 'ALUMNI', 'ADMIN'))
+          )
         ORDER BY (p.like_count * 2 + p.comment_count) DESC, p.created_at DESC
     </select>
 
@@ -140,6 +178,7 @@
             u.username,
             a.real_name as realName,
             u.avatar,
+            u.role as userRole,
             p.content,
             p.image_urls as imageUrls,
             p.visibility,
@@ -157,10 +196,15 @@
                 WHEN f.id IS NOT NULL THEN true
                 ELSE false
             END as isFollowed,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId} THEN true
+                ELSE false
+            END as locked,
             p.created_at as createdAt,
             p.updated_at as updatedAt
         FROM post p
         INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN user cu ON cu.id = #{currentUserId}
         LEFT JOIN alumni_info a ON u.id = a.user_id
         LEFT JOIN follow f ON f.follower_id = #{currentUserId}
             AND f.followee_id = p.user_id
@@ -174,8 +218,8 @@
           AND u.status = 1
           AND (
             p.visibility = 0
-            OR (p.visibility = 1 AND #{currentUserId} IN (SELECT user_id FROM alumni_info WHERE verify_status = 1))
             OR p.user_id = #{currentUserId}
+            OR (p.visibility = 1 AND cu.role IN ('USER', 'ALUMNI', 'ADMIN'))
           )
         ORDER BY p.created_at DESC
     </select>
@@ -188,8 +232,17 @@
             u.username,
             a.real_name as realName,
             u.avatar,
-            p.content,
-            p.image_urls as imageUrls,
+            u.role as userRole,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN '该动态仅校友可见，完成校友认证后可查看'
+                ELSE p.content
+            END as content,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId}
+                    THEN NULL
+                ELSE p.image_urls
+            END as imageUrls,
             p.visibility,
             p.like_count as likeCount,
             p.comment_count as commentCount,
@@ -205,10 +258,15 @@
                 WHEN f.id IS NOT NULL THEN true
                 ELSE false
             END as isFollowed,
+            CASE
+                WHEN p.visibility = 1 AND cu.role = 'USER' AND p.user_id != #{currentUserId} THEN true
+                ELSE false
+            END as locked,
             p.created_at as createdAt,
             p.updated_at as updatedAt
         FROM post p
         INNER JOIN user u ON p.user_id = u.id
+        LEFT JOIN user cu ON cu.id = #{currentUserId}
         LEFT JOIN alumni_info a ON u.id = a.user_id
         LEFT JOIN follow f ON f.follower_id = #{currentUserId}
             AND f.followee_id = p.user_id
@@ -222,8 +280,8 @@
           AND u.status = 1
           AND (
             p.visibility = 0
-            OR (p.visibility = 1 AND #{currentUserId} IN (SELECT user_id FROM alumni_info WHERE verify_status = 1))
             OR p.user_id = #{currentUserId}
+            OR (p.visibility = 1 AND cu.role IN ('USER', 'ALUMNI', 'ADMIN'))
           )
     </select>
 

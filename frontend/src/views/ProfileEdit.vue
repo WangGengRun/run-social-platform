@@ -1,6 +1,8 @@
 <template>
-  <div class="profile-edit-container">
-    <el-card class="edit-card">
+  <div class="profile-edit-page">
+    <AppShellBar />
+    <div class="profile-edit-container alumni-page">
+    <el-card class="edit-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>编辑资料</span>
@@ -8,6 +10,30 @@
       </template>
       
       <div class="edit-form">
+        <div class="avatar-section">
+          <div class="avatar-preview">
+            <el-avatar :size="120" :src="avatarUrl" class="current-avatar">
+              <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
+              <span v-else>{{ form.realName.charAt(0) || '用' }}</span>
+            </el-avatar>
+            <div class="avatar-actions">
+              <el-button type="primary" size="small" @click="triggerFileInput">
+                选择头像
+              </el-button>
+              <el-button v-if="avatarUrl" size="small" @click="handleDeleteAvatar">
+                删除头像
+              </el-button>
+            </div>
+          </div>
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            class="file-input"
+            @change="handleFileChange"
+          />
+        </div>
+        
         <el-form
           :model="form"
           :rules="rules"
@@ -67,6 +93,7 @@
         </el-form>
       </div>
     </el-card>
+    </div>
   </div>
 </template>
 
@@ -75,10 +102,23 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { alumniApi } from '../api/alumni'
+import { resolveAvatarUrl, clearAvatarUrlCache } from '../utils/avatarUrl'
+import { useUserStore } from '../stores/user'
+import AppShellBar from '../components/AppShellBar.vue'
+
+function parseUploadObjectName(data) {
+  if (data == null || data === '') return ''
+  if (typeof data === 'string') return data
+  return data.key || data.objectName || data.path || ''
+}
 
 const router = useRouter()
+const userStore = useUserStore()
 const formRef = ref()
+const fileInput = ref()
 const loading = ref(false)
+const avatarUrl = ref('')
+const avatarObjectName = ref('')
 
 const form = ref({
   realName: '',
@@ -124,10 +164,72 @@ const initForm = async () => {
         city: response.data.city || '',
         bio: response.data.bio || ''
       }
+      
+      // 处理头像
+      if (response.data.avatar) {
+        avatarObjectName.value = response.data.avatar
+        avatarUrl.value = await resolveAvatarUrl(response.data.avatar)
+      }
     }
   } catch (error) {
     console.error('获取个人信息失败:', error)
     ElMessage.error('获取个人信息失败，请重试')
+  }
+}
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleFileChange = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  try {
+    const response = await alumniApi.uploadAvatar(formData)
+    if ((response.code === 200 || response.code === 0) && response.data != null && response.data !== '') {
+      const objectName = parseUploadObjectName(response.data)
+      if (objectName) {
+        avatarObjectName.value = objectName
+        avatarUrl.value = await resolveAvatarUrl(objectName)
+        userStore.patchUserInfo({ avatar: objectName })
+        ElMessage.success('头像上传成功')
+      } else {
+        ElMessage.error('头像上传失败：响应格式错误')
+      }
+    } else {
+      ElMessage.error(response.msg || response.message || '头像上传失败，请重试')
+    }
+  } catch (error) {
+    console.error('上传头像失败:', error)
+    ElMessage.error('上传头像失败：' + (error.message || '请重试'))
+  }
+  
+  // 重置文件输入
+  event.target.value = ''
+}
+
+const handleDeleteAvatar = async () => {
+  if (!avatarObjectName.value) return
+  
+  try {
+    const key = avatarObjectName.value
+    const response = await alumniApi.deleteAvatar(key)
+    if (response.code === 200 || response.code === 0) {
+      clearAvatarUrlCache(key)
+      avatarUrl.value = ''
+      avatarObjectName.value = ''
+      userStore.patchUserInfo({ avatar: '' })
+      ElMessage.success('头像删除成功')
+    } else {
+      ElMessage.error(response.msg || response.message || '头像删除失败，请重试')
+    }
+  } catch (error) {
+    console.error('删除头像失败:', error)
+    ElMessage.error('删除头像失败，请重试')
   }
 }
 
@@ -143,9 +245,18 @@ const handleSubmit = async () => {
       loading.value = true
       
       try {
-        const response = await alumniApi.updateProfile(form.value)
+        const profileData = {
+          ...form.value,
+          avatar: avatarObjectName.value
+        }
+        
+        const response = await alumniApi.updateProfile(profileData)
         
         if (response.code === 200) {
+          userStore.patchUserInfo({
+            avatar: avatarObjectName.value || '',
+            realName: form.value.realName || userStore.userInfo?.realName
+          })
           ElMessage.success('保存成功')
           // 跳转到个人主页并刷新
           router.push('/profile/' + form.value.userId || '')
@@ -171,25 +282,68 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.profile-edit-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .profile-edit-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 0 20px;
+  flex: 1;
 }
 
 .edit-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.edit-card :deep(.el-card__header) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .card-header {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .edit-form {
   padding: 20px 0;
+}
+
+.avatar-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.avatar-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.current-avatar {
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 28px rgba(79, 70, 229, 0.18);
+  transition: box-shadow 0.25s ease;
+}
+
+.current-avatar:hover {
+  box-shadow: 0 10px 36px rgba(79, 70, 229, 0.28);
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.file-input {
+  display: none;
 }
 
 .profile-form {
@@ -233,6 +387,11 @@ onMounted(() => {
   .cancel-button,
   .submit-button {
     width: 100%;
+  }
+  
+  .avatar-actions {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>

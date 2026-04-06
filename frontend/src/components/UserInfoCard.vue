@@ -1,96 +1,103 @@
 <template>
   <div class="user-info-card">
-    <div class="user-header">
+    <div class="user-top">
       <div class="avatar-section">
-        <el-avatar :size="80" :src="userInfo.avatar" />
-        <el-tag v-if="userInfo.verifyStatus === 'VERIFIED'" type="success" size="small" class="verified-tag">
-          已认证
+        <ResolvedAvatar :size="80" :src="userInfo.avatar || ''">
+          {{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}
+        </ResolvedAvatar>
+        <el-tag :type="isAlumni ? 'success' : 'info'" size="small" class="verified-tag">
+          {{ isAlumni ? '校友' : '普通用户' }}
         </el-tag>
       </div>
-      <div class="user-name">
-        <h2>{{ userInfo.realName || userInfo.username }}</h2>
-        <p v-if="userInfo.bio" class="bio">{{ userInfo.bio }}</p>
-      </div>
-    </div>
-    
-    <div class="user-stats">
-      <div class="stat-item">
-        <span class="stat-value">{{ userInfo.postCount || 0 }}</span>
-        <span class="stat-label">动态</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ followStats.followingCount || 0 }}</span>
-        <span class="stat-label">关注</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ followStats.followerCount || 0 }}</span>
-        <span class="stat-label">粉丝</span>
-      </div>
-    </div>
-    
-    <div class="user-details">
-      <div v-if="userInfo.enrollYear" class="detail-item">
-        <el-icon><Calendar /></el-icon>
-        <span>{{ userInfo.enrollYear }}入学</span>
-      </div>
-      <div v-if="userInfo.graduationYear" class="detail-item">
-        <el-icon><Calendar /></el-icon>
-        <span>{{ userInfo.graduationYear }}毕业</span>
-      </div>
-      <div v-if="userInfo.college" class="detail-item">
-        <el-icon><School /></el-icon>
-        <span>{{ userInfo.college }}</span>
-      </div>
-      <div v-if="userInfo.major" class="detail-item">
-        <el-icon><Reading /></el-icon>
-        <span>{{ userInfo.major }}</span>
-      </div>
-      <div v-if="userInfo.company" class="detail-item">
-        <el-icon><OfficeBuilding /></el-icon>
-        <span>{{ userInfo.company }}</span>
-      </div>
-      <div v-if="userInfo.position" class="detail-item">
-        <el-icon><Briefcase /></el-icon>
-        <span>{{ userInfo.position }}</span>
-      </div>
-      <div v-if="userInfo.city" class="detail-item">
-        <el-icon><Location /></el-icon>
-        <span>{{ userInfo.city }}</span>
-      </div>
-    </div>
-    
-    <div class="user-actions">
-      <el-button
-        v-if="!isSelf"
-        :type="isFollowing ? 'default' : 'primary'"
-        @click="handleFollowClick"
-        :loading="followLoading"
-      >
-        {{ isFollowing ? '取消关注' : '关注' }}
-      </el-button>
-      <el-button
-        v-if="!isSelf"
-        type="primary"
-        @click="handleMessageClick"
-      >
-        发私信
-      </el-button>
-      <el-button
-        v-if="isSelf"
-        type="primary"
-        @click="handleEditClick"
-      >
-        编辑资料
-      </el-button>
+
+      <AlumniOnlyBlur :locked="contentLocked" class="user-top-blur">
+        <div class="user-name">
+          <h2>{{ userInfo.realName || userInfo.username }}</h2>
+          <p v-if="userInfo.bio" class="bio">{{ userInfo.bio }}</p>
+        </div>
+
+        <div class="user-stats">
+          <div class="stat-item">
+            <span class="stat-value">{{ userInfo.postCount || 0 }}</span>
+            <span class="stat-label">动态</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ followStats.followingCount || 0 }}</span>
+            <span class="stat-label">关注</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ followStats.followerCount || 0 }}</span>
+            <span class="stat-label">粉丝</span>
+          </div>
+        </div>
+
+        <div class="user-details">
+          <div v-if="userInfo.enrollYear" class="detail-item">
+            <el-icon><Calendar /></el-icon>
+            <span>{{ userInfo.enrollYear }}入学</span>
+          </div>
+          <div v-if="userInfo.graduationYear" class="detail-item">
+            <el-icon><Calendar /></el-icon>
+            <span>{{ userInfo.graduationYear }}毕业</span>
+          </div>
+          <div v-if="userInfo.college" class="detail-item">
+            <el-icon><School /></el-icon>
+            <span>{{ userInfo.college }}</span>
+          </div>
+          <div v-if="userInfo.major" class="detail-item">
+            <el-icon><Reading /></el-icon>
+            <span>{{ userInfo.major }}</span>
+          </div>
+          <div v-if="userInfo.company" class="detail-item">
+            <el-icon><OfficeBuilding /></el-icon>
+            <span>{{ userInfo.company }}</span>
+          </div>
+          <div v-if="userInfo.position" class="detail-item">
+            <el-icon><Briefcase /></el-icon>
+            <span>{{ userInfo.position }}</span>
+          </div>
+          <div v-if="userInfo.city" class="detail-item">
+            <el-icon><Location /></el-icon>
+            <span>{{ userInfo.city }}</span>
+          </div>
+        </div>
+
+        <div class="user-actions">
+          <el-button
+            v-if="!isSelf"
+            :type="isFollowing ? 'default' : 'primary'"
+            @click="handleFollowClick"
+            :loading="followLoading"
+          >
+            {{ isFollowing ? '取消关注' : '关注' }}
+          </el-button>
+          <el-button
+            v-if="!isSelf"
+            type="primary"
+            @click="handleMessageClick"
+          >
+            发私信
+          </el-button>
+          <el-button
+            v-if="isSelf"
+            type="primary"
+            @click="handleEditClick"
+          >
+            编辑资料
+          </el-button>
+        </div>
+      </AlumniOnlyBlur>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Calendar, School, Reading, OfficeBuilding, Briefcase, Location } from '@element-plus/icons-vue'
+import ResolvedAvatar from './ResolvedAvatar.vue'
+import AlumniOnlyBlur from './AlumniOnlyBlur.vue'
 
 const router = useRouter()
 
@@ -112,6 +119,10 @@ const props = defineProps({
   isFollowing: {
     type: Boolean,
     default: false
+  },
+  contentLocked: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -123,8 +134,15 @@ console.log('UserInfoCard props:', {
 const emit = defineEmits(['follow', 'unfollow', 'edit'])
 
 const followLoading = ref(false)
+const isAlumni = computed(() =>
+  props.userInfo?.role === 'ALUMNI' || props.userInfo?.verifyStatus === 1 || props.userInfo?.verifyStatus === 'VERIFIED'
+)
 
 const handleFollowClick = async () => {
+  if (props.contentLocked) {
+    ElMessage.warning('请先完成校友认证，认证后可使用关注等功能')
+    return
+  }
   followLoading.value = true
   
   try {
@@ -163,10 +181,15 @@ const handleMessageClick = () => {
   margin-bottom: 20px;
 }
 
-.user-header {
+.user-top {
   display: flex;
   gap: 16px;
-  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.user-top-blur {
+  flex: 1;
+  min-width: 0;
 }
 
 .avatar-section {
@@ -256,7 +279,7 @@ const handleMessageClick = () => {
 }
 
 @media (max-width: 768px) {
-  .user-header {
+  .user-top {
     flex-direction: column;
     align-items: center;
     text-align: center;

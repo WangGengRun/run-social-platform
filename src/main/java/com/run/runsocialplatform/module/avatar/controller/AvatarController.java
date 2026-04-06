@@ -2,6 +2,8 @@ package com.run.runsocialplatform.module.avatar.controller;
 
 
 import com.run.runsocialplatform.common.utils.MinioUtil;
+import com.run.runsocialplatform.module.auth.service.UserService;
+import com.run.runsocialplatform.security.utils.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,12 @@ public class AvatarController {
     @Autowired
     private MinioUtil minioUtil;
 
+    private final UserService userService;
+
+    public AvatarController(UserService userService) {
+        this.userService = userService;
+    }
+
     /**
      * 接口1：上传头像
      * @param file 前端上传的头像文件
@@ -30,6 +38,7 @@ public class AvatarController {
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         try {
             // 校验文件（可选：限制大小、格式）
             if (file.isEmpty()) {
@@ -47,7 +56,7 @@ public class AvatarController {
 
             // 调用MinIO工具类上传文件
             String objectName = minioUtil.uploadAvatar(file);
-
+            userService.setAvatar(objectName);
             // 封装返回结果（objectName需要存入用户表的avatar字段）
             result.put("code", 200);
             result.put("msg", "上传成功");

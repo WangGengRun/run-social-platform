@@ -27,7 +27,7 @@ public class PrivateMessageController {
     private final PrivateMessageService messageService;
 
     @PostMapping
-    @Operation(summary = "发送私信")
+    @Operation(summary = "发送私信（仅校友）")
     @PreAuthorize("hasAuthority('ALUMNI')")
     public Result<Long> sendMessage(@Valid @RequestBody MessageSendDTO sendDTO) {
         Long messageId = messageService.sendMessage(sendDTO);
@@ -36,7 +36,7 @@ public class PrivateMessageController {
 
     @GetMapping("/conversations")
     @Operation(summary = "获取会话列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<ConversationVO>> getConversationList(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
@@ -46,7 +46,7 @@ public class PrivateMessageController {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "获取与指定用户的消息列表")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<PageResult<PrivateMessageVO>> getMessageListWithUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -57,14 +57,14 @@ public class PrivateMessageController {
 
     @PutMapping("/read/{userId}")
     @Operation(summary = "标记与指定用户的消息为已读")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> markAsRead(@PathVariable Long userId) {
         messageService.markAsRead(userId);
         return Result.success();
     }
 
     @DeleteMapping("/{messageId}")
-    @Operation(summary = "删除消息")
+    @Operation(summary = "删除消息（仅校友）")
     @PreAuthorize("hasAuthority('ALUMNI')")
     public Result<Void> deleteMessage(@PathVariable Long messageId) {
         messageService.deleteMessage(messageId);
@@ -73,7 +73,7 @@ public class PrivateMessageController {
 
     @GetMapping("/unread")
     @Operation(summary = "获取未读消息数")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<UnreadCountVO> getUnreadCount(
             @RequestParam(required = false) Long userId) {
         UnreadCountVO unreadCount = messageService.getUnreadCount(userId);

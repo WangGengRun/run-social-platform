@@ -3,6 +3,8 @@ package com.run.runsocialplatform.module.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.run.runsocialplatform.common.constant.ResultCode;
+import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.module.admin.model.dto.UserQueryDTO;
 import com.run.runsocialplatform.module.admin.model.vo.*;
 import com.run.runsocialplatform.module.admin.service.AdminService;
@@ -93,6 +95,44 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public IPage<UserManageVO> getPendingAlumniVerifyList(Integer pageNum, Integer pageSize, String keyword) {
+        Page<AlumniInfo> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<AlumniInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AlumniInfo::getVerifyStatus, 0);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w.like(AlumniInfo::getRealName, keyword)
+                    .or().like(AlumniInfo::getStudentId, keyword)
+                    .or().like(AlumniInfo::getCollege, keyword)
+                    .or().like(AlumniInfo::getMajor, keyword));
+        }
+        wrapper.orderByAsc(AlumniInfo::getCreatedAt);
+
+        Page<AlumniInfo> verifyPage = alumniProfileMapper.selectPage(page, wrapper);
+        return verifyPage.convert(info -> {
+            UserManageVO vo = new UserManageVO();
+            vo.setRealName(info.getRealName());
+            vo.setStudentId(info.getStudentId());
+            vo.setVerifyStatus(info.getVerifyStatus());
+            vo.setCreatedAt(info.getCreatedAt());
+
+            UserEntity user = userMapper.selectById(info.getUserId());
+            if (user != null) {
+                vo.setId(user.getId());
+                vo.setUsername(user.getUsername());
+                vo.setEmail(user.getEmail());
+                vo.setPhone(user.getPhone());
+                vo.setAvatar(user.getAvatar());
+                vo.setRole(user.getRole());
+                vo.setStatus(user.getStatus());
+                vo.setLastLoginTime(user.getLastLoginTime());
+            } else {
+                vo.setId(info.getUserId());
+            }
+            return vo;
+        });
+    }
+
+    @Override
     public UserDetailVO getUserDetail(Long userId) {
         UserEntity user = userMapper.selectById(userId);
         if (user == null) {
@@ -158,6 +198,36 @@ public class AdminServiceImpl implements AdminService {
         user.setRole(role);
         userMapper.updateById(user);
         log.info("更新用户角色：userId={}, role={}", userId, role);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void auditAlumniVerify(Long userId, Integer verifyStatus, String verifyNotes, Long verifyAdminId) {
+        if (verifyStatus == null || (verifyStatus != 1 && verifyStatus != 2)) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "审核状态仅支持1(通过)或2(驳回)");
+        }
+
+        AlumniInfo alumniInfo = alumniProfileMapper.selectOne(
+                new LambdaQueryWrapper<AlumniInfo>().eq(AlumniInfo::getUserId, userId)
+        );
+        if (alumniInfo == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_EXIST, "该用户未提交校友认证信息");
+        }
+
+        alumniInfo.setVerifyStatus(verifyStatus);
+        alumniInfo.setVerifyNotes(verifyNotes);
+        alumniInfo.setVerifyAdminId(verifyAdminId);
+        alumniInfo.setVerifyTime(LocalDateTime.now());
+        alumniProfileMapper.updateById(alumniInfo);
+
+        UserEntity user = new UserEntity();
+        user.setId(userId);
+        if (verifyStatus != null && verifyStatus == 1) {
+            user.setRole("ALUMNI");
+        } else {
+            user.setRole("USER");
+        }
+        userMapper.updateById(user);
     }
 
     // 内容审核

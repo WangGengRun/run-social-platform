@@ -1,10 +1,12 @@
 <template>
-  <div class="post-detail-container">
+  <div class="post-detail-page">
+    <AppShellBar />
+    <div class="post-detail-container alumni-page">
     <!-- 顶部动态卡片 -->
     <div class="post-card">
       <div class="post-header">
         <div class="user-info" @click="handleUserClick(post.userId)">
-          <el-avatar :size="40" :src="post.avatar" />
+          <ResolvedAvatar :size="40" :src="post.avatar || ''" />
           <div class="user-details">
             <div class="username">{{ post.realName || post.username }}</div>
             <div class="time">{{ formatTime(post.createdAt) }}</div>
@@ -41,9 +43,19 @@
             :class="{ 'liked': post.isLiked }"
             @click="handleLikeClick"
           >
-            <el-icon>
-              <component :is="post.isLiked ? 'StarFilled' : 'Star'" />
-            </el-icon>
+            <svg
+              class="like-thumb"
+              :class="{ liked: post.isLiked }"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                fill="currentColor"
+                d="M2 21h4V10H2v11zm20-11c0-1.1-.9-2-2-2h-3l1-6c.05-.25-.02-.51-.2-.69-.18-.18-.44-.25-.69-.2l-1 .2c-.36.07-.65.35-.75.7L13 9H9c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-11h2z"
+              />
+            </svg>
             <span>{{ post.likeCount || 0 }}</span>
           </div>
           
@@ -87,6 +99,7 @@
         @cancel="handleCancelReply"
       />
     </div>
+    </div>
   </div>
 </template>
 
@@ -94,9 +107,11 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading, Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue'
+import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import CommentItem from '../components/CommentItem.vue'
 import CommentInput from '../components/CommentInput.vue'
+import ResolvedAvatar from '../components/ResolvedAvatar.vue'
+import AppShellBar from '../components/AppShellBar.vue'
 import { postApi } from '../api/post'
 import { usePostStore } from '../stores/post'
 
@@ -289,20 +304,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.post-detail-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f7fa;
+.post-detail-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-detail-container {
+  flex: 1;
   padding-bottom: 100px;
 }
 
 .post-card {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--surface-solid);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
   margin-bottom: 20px;
 }
 
@@ -324,14 +342,16 @@ onMounted(() => {
 
 .username {
   font-size: 16px;
-  font-weight: bold;
-  color: #303133;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .time {
   font-size: 12px;
-  color: #909399;
+  color: var(--ink-faint);
   margin-top: 2px;
+  font-weight: 500;
 }
 
 .post-content {
@@ -389,18 +409,28 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #909399;
+  color: var(--ink-faint);
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s;
+  transition: color 0.2s;
 }
 
 .action-button:hover {
-  color: #409eff;
+  color: var(--accent);
 }
 
 .action-button.liked {
-  color: #f56c6c;
+  color: #e11d48;
+}
+
+.like-thumb {
+  color: currentColor;
+  transition: transform 0.18s ease;
+}
+
+.action-button.liked .like-thumb {
+  transform: translateY(-1px) scale(1.04);
 }
 
 .action-button .el-icon {
@@ -408,17 +438,19 @@ onMounted(() => {
 }
 
 .comments-section {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--surface-solid);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
   margin-bottom: 20px;
 }
 
 .comments-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
   margin-bottom: 20px;
 }
 
@@ -439,11 +471,12 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  border-top: 1px solid #f0f0f0;
-  padding: 16px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 16px 20px 20px;
+  box-shadow: 0 -12px 40px rgba(12, 18, 34, 0.08);
+  max-width: var(--content-max);
   margin: 0 auto;
 }
 

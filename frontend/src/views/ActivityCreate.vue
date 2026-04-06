@@ -1,12 +1,15 @@
 <template>
-  <div class="activity-create-container">
-    <el-card class="create-card">
+  <div class="activity-create-page">
+    <AppShellBar />
+    <div class="activity-create-container alumni-page">
+    <el-card class="create-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span>创建活动</span>
         </div>
       </template>
-      
+
+      <AlumniOnlyBlur :locked="isUserNonAlumni">
       <div class="create-form">
         <el-form
           :model="form"
@@ -98,18 +101,25 @@
           </el-form-item>
         </el-form>
       </div>
+      </AlumniOnlyBlur>
     </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { activityApi } from '../api/activity'
+import AppShellBar from '../components/AppShellBar.vue'
+import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
+const isUserNonAlumni = computed(() => userStore.role === 'USER')
 const formRef = ref()
 const loading = ref(false)
 
@@ -185,6 +195,10 @@ const handleCancel = () => {
 }
 
 const handleSubmit = async () => {
+  if (userStore.role === 'USER') {
+    ElMessage.warning('请先完成校友认证，认证后可创建活动')
+    return
+  }
   if (!formRef.value) return
   
   await formRef.value.validate(async (valid) => {
@@ -216,21 +230,33 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+.activity-create-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .activity-create-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 0 20px;
+  flex: 1;
 }
 
 .create-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+.create-card :deep(.el-card__header) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .card-header {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .create-form {

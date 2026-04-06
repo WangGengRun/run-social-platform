@@ -27,7 +27,7 @@ public class AlumniProfileController {
 
     @GetMapping("/profile/current")
     @Operation(summary = "获取当前用户校友档案")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<AlumniProfileVO> getCurrentProfile() {
         AlumniProfileVO profile = alumniProfileService.getCurrentUserProfile();
         return Result.success(profile);
@@ -35,17 +35,17 @@ public class AlumniProfileController {
 
     @PutMapping("/profile/current")
     @Operation(summary = "更新当前用户校友档案")
-    @PreAuthorize("hasAuthority('ALUMNI')")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> updateProfile(@Validated @RequestBody AlumniProfileDTO profileDTO) {
         alumniProfileService.updateCurrentUserProfile(profileDTO);
         return Result.success();
     }
 
-    @GetMapping("/profile/{id}")
-    @Operation(summary = "获取校友档案详情")
-    @PreAuthorize("hasAuthority('ALUMNI')")
-    public Result<AlumniProfileVO> getProfile(@PathVariable Long id) {
-        AlumniProfileVO profile = alumniProfileService.getAlumniProfile(id);
+    @GetMapping("/profile/{userId}")
+    @Operation(summary = "根据用户ID获取校友档案详情（与动态圈 /profile/{userId} 一致）")
+    @PreAuthorize("isAuthenticated()")
+    public Result<AlumniProfileVO> getProfile(@PathVariable Long userId) {
+        AlumniProfileVO profile = alumniProfileService.getAlumniProfileByUserId(userId);
         return Result.success(profile);
     }
 

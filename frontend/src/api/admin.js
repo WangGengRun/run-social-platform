@@ -106,6 +106,16 @@ const adminApi = {
       }
     })
   },
+
+  getPendingAlumniVerifyList(pageNum, pageSize, keyword) {
+    return service.get('/api/admin/users/alumni-verify/pending', {
+      params: {
+        pageNum,
+        pageSize,
+        keyword
+      }
+    })
+  },
   
   getUserDetail(userId) {
     return service.get(`/api/admin/users/${userId}`)
@@ -120,6 +130,12 @@ const adminApi = {
   updateUserRole(userId, role) {
     return service.put(`/api/admin/users/${userId}/role`, {}, {
       params: { role }
+    })
+  },
+
+  auditAlumniVerify(userId, verifyStatus, verifyNotes = '') {
+    return service.put(`/api/admin/users/${userId}/alumni-verify`, {}, {
+      params: { verifyStatus, verifyNotes }
     })
   },
   

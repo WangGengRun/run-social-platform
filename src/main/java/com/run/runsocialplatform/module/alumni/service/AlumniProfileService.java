@@ -29,6 +29,11 @@ public interface AlumniProfileService extends IService<AlumniInfo> {
     AlumniProfileVO getAlumniProfile(Long alumniId);
 
     /**
+     * 根据用户ID获取校友档案（用于个人主页，路径参数为 user.id）
+     */
+    AlumniProfileVO getAlumniProfileByUserId(Long userId);
+
+    /**
      * 搜索校友
      */
     Page<AlumniListItemVO> searchAlumni(AlumniSearchDTO searchDTO);

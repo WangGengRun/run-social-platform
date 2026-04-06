@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <el-aside width="200px" class="sidebar">
       <div class="logo">
-        <h3>校友社交平台</h3>
+        <h3>遇见校友</h3>
         <p>后台管理系统</p>
       </div>
       <el-menu
@@ -19,6 +19,10 @@
         <el-menu-item index="/admin/users">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/alumni-verify">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>校友认证审核</span>
         </el-menu-item>
         <el-menu-item index="/admin/content">
           <el-icon><Document /></el-icon>
@@ -84,6 +88,7 @@ const activeMenu = computed(() => {
 const pageTitles = {
   '/admin/dashboard': '仪表盘',
   '/admin/users': '用户管理',
+  '/admin/alumni-verify': '校友认证审核',
   '/admin/content': '动态审核',
   '/admin/comments': '评论审核',
   '/admin/activities': '活动管理'

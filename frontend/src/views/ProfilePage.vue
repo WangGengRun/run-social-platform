@@ -21,10 +21,35 @@
         :follow-stats="followStats"
         :is-self="isSelf"
         :is-following="isFollowing"
+        :content-locked="otherProfileLocked"
         @follow="handleFollow"
         @unfollow="handleUnfollow"
         @edit="handleEditProfile"
       />
+
+      <el-card v-if="isSelf && userStore.role !== 'ADMIN'" class="verify-card">
+        <template #header>
+          <div class="verify-header">
+            <span>校友认证</span>
+            <el-tag :type="getVerifyTagType(verifyStatusInfo.verifyStatus)">
+              {{ getVerifyText(verifyStatusInfo.verifyStatus) }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="verify-content">
+          <p v-if="verifyStatusInfo.verifyStatus === -1">你还未提交校友认证信息，提交后由管理员审核。</p>
+          <p v-else-if="verifyStatusInfo.verifyStatus === 0">认证申请审核中，请耐心等待。</p>
+          <p v-else-if="verifyStatusInfo.verifyStatus === 1">认证已通过，你当前为校友身份。</p>
+          <p v-else>认证未通过：{{ verifyStatusInfo.verifyNotes || '请完善信息后重新提交' }}</p>
+          <el-button
+            v-if="userStore.role === 'USER' && verifyStatusInfo.verifyStatus !== 0"
+            type="primary"
+            @click="verifyDialogVisible = true"
+          >
+            {{ verifyStatusInfo.verifyStatus === 2 ? '重新提交认证' : '申请校友认证' }}
+          </el-button>
+        </div>
+      </el-card>
       
       <el-tabs v-model="activeTab" class="profile-tabs">
         <el-tab-pane label="动态" name="posts">
@@ -36,19 +61,27 @@
               v-for="post in userPosts"
               :key="post.id"
               class="post-card"
-              @click="handlePostClick(post.id)"
+              :class="{ locked: isLockedPost(post) }"
+              @click="handlePostClick(post)"
             >
               <div class="post-header">
                 <div class="user-info" @click.stop="handleUserClick(userInfo.userId)">
-                  <el-avatar :size="40" :src="userInfo.avatar" />
+                  <ResolvedAvatar :size="40" :src="userInfo.avatar || ''">
+                    {{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}
+                  </ResolvedAvatar>
                   <div class="user-details">
-                    <div class="username">{{ userInfo.realName || userInfo.username }}</div>
+                    <div class="username-row">
+                      <div class="username">{{ userInfo.realName || userInfo.username }}</div>
+                      <el-tag v-if="post.userRole === 'ALUMNI'" size="small" type="warning" effect="plain">校友</el-tag>
+                      <el-tag v-else size="small" effect="plain">普通用户</el-tag>
+                    </div>
                     <div class="time">{{ formatTime(post.createdAt) }}</div>
                   </div>
                 </div>
               </div>
               
               <div class="post-content">
+                <div v-if="isLockedPost(post)" class="lock-banner">🔒 校友可见内容，完成校友认证后可查看</div>
                 <div class="text-content">{{ post.content }}</div>
                 
                 <div v-if="post.imageUrlList && post.imageUrlList.length > 0" class="image-grid">
@@ -57,12 +90,12 @@
                     :key="index"
                     class="image-item"
                     :class="{ 'single': post.imageUrlList.length === 1 }"
-                    @click.stop="handleImageClick(imageUrl)"
+                    @click.stop="handleImageClick(imageUrl, post)"
                   >
                     <el-image
                       :src="imageUrl"
                       fit="cover"
-                      :preview-src-list="post.imageUrlList"
+                      :preview-src-list="isLockedPost(post) ? [] : post.imageUrlList"
                       :initial-index="index"
                       :preview-teleported="true"
                     />
@@ -75,7 +108,7 @@
                   <div
                     class="action-button"
                     :class="{ 'liked': post.isLiked }"
-                    @click.stop="handleLikeClick(post.id)"
+                    @click.stop="handleLikeClick(post)"
                   >
                     <el-icon>
                       <component :is="post.isLiked ? 'StarFilled' : 'Star'" />
@@ -85,7 +118,7 @@
                   
                   <div
                     class="action-button"
-                    @click.stop="handleCommentClick(post.id)"
+                    @click.stop="handleCommentClick(post)"
                   >
                     <el-icon><ChatDotRound /></el-icon>
                     <span>{{ post.commentCount || 0 }}</span>
@@ -106,7 +139,9 @@
         </el-tab-pane>
         
         <el-tab-pane label="档案" name="profile">
-          <ProfileInfoTab :user-info="userInfo" />
+          <AlumniOnlyBlur :locked="otherProfileLocked">
+            <ProfileInfoTab :user-info="userInfo" />
+          </AlumniOnlyBlur>
         </el-tab-pane>
         
         <el-tab-pane label="关注" name="following">
@@ -117,27 +152,31 @@
           <div v-else-if="followingList.length === 0" class="empty-container">
             <el-empty description="暂无关注" />
           </div>
-          <div v-else class="follow-list">
-            <div
-              v-for="user in followingList"
-              :key="user.userId"
-              class="follow-item"
-              @click="console.log('关注列表点击事件触发:', user.userId); handleUserClick(user.userId)"
-            >
-              <el-avatar :size="50" :src="user.avatar" @click.stop="console.log('头像点击事件触发:', user.userId); handleUserClick(user.userId)" />
-              <div class="user-details">
-                <div class="username" @click.stop="console.log('用户名点击事件触发:', user.userId); handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
-                <div class="user-meta">
-                  <span v-if="user.college">{{ user.college }}</span>
-                  <span v-if="user.major"> · {{ user.major }}</span>
-                </div>
-                <div class="follow-info">
-                  <span v-if="user.isMutualFollow" class="mutual-follow">互相关注</span>
-                  <span class="follow-time">{{ formatTime(user.followTime) }}</span>
+          <AlumniOnlyBlur v-else :locked="otherProfileLocked" class="follow-blur-wrap">
+            <div class="follow-list">
+              <div
+                v-for="user in followingList"
+                :key="user.userId"
+                class="follow-item"
+                @click="handleUserClick(user.userId)"
+              >
+                <ResolvedAvatar :size="50" :src="user.avatar || ''" @click.stop="handleUserClick(user.userId)">
+                  {{ user.realName?.charAt(0) || user.username?.charAt(0) || '用' }}
+                </ResolvedAvatar>
+                <div class="user-details">
+                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
+                  <div class="user-meta">
+                    <span v-if="user.college">{{ user.college }}</span>
+                    <span v-if="user.major"> · {{ user.major }}</span>
+                  </div>
+                  <div class="follow-info">
+                    <span v-if="user.isMutualFollow" class="mutual-follow">互相关注</span>
+                    <span class="follow-time">{{ formatTime(user.followTime) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </AlumniOnlyBlur>
         </el-tab-pane>
         
         <el-tab-pane label="粉丝" name="followers">
@@ -148,30 +187,53 @@
           <div v-else-if="followersList.length === 0" class="empty-container">
             <el-empty description="暂无粉丝" />
           </div>
-          <div v-else class="follow-list">
-            <div
-              v-for="user in followersList"
-              :key="user.userId"
-              class="follow-item"
-              @click="console.log('粉丝列表点击事件触发:', user.userId); handleUserClick(user.userId)"
-            >
-              <el-avatar :size="50" :src="user.avatar" @click.stop="console.log('头像点击事件触发:', user.userId); handleUserClick(user.userId)" />
-              <div class="user-details">
-                <div class="username" @click.stop="console.log('用户名点击事件触发:', user.userId); handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
-                <div class="user-meta">
-                  <span v-if="user.college">{{ user.college }}</span>
-                  <span v-if="user.major"> · {{ user.major }}</span>
-                </div>
-                <div class="follow-info">
-                  <span v-if="user.isMutualFollow" class="mutual-follow">互相关注</span>
-                  <span class="follow-time">{{ formatTime(user.followTime) }}</span>
+          <AlumniOnlyBlur v-else :locked="otherProfileLocked" class="follow-blur-wrap">
+            <div class="follow-list">
+              <div
+                v-for="user in followersList"
+                :key="user.userId"
+                class="follow-item"
+                @click="handleUserClick(user.userId)"
+              >
+                <ResolvedAvatar :size="50" :src="user.avatar || ''" @click.stop="handleUserClick(user.userId)">
+                  {{ user.realName?.charAt(0) || user.username?.charAt(0) || '用' }}
+                </ResolvedAvatar>
+                <div class="user-details">
+                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
+                  <div class="user-meta">
+                    <span v-if="user.college">{{ user.college }}</span>
+                    <span v-if="user.major"> · {{ user.major }}</span>
+                  </div>
+                  <div class="follow-info">
+                    <span v-if="user.isMutualFollow" class="mutual-follow">互相关注</span>
+                    <span class="follow-time">{{ formatTime(user.followTime) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </AlumniOnlyBlur>
         </el-tab-pane>
       </el-tabs>
     </div>
+
+    <el-dialog v-model="verifyDialogVisible" title="校友认证申请" width="560px">
+      <el-form ref="verifyFormRef" :model="verifyForm" :rules="verifyRules" label-width="92px">
+        <el-form-item label="真实姓名" prop="realName"><el-input v-model="verifyForm.realName" /></el-form-item>
+        <el-form-item label="学号" prop="studentId"><el-input v-model="verifyForm.studentId" /></el-form-item>
+        <el-form-item label="入学年份" prop="admissionYear"><el-input v-model="verifyForm.admissionYear" type="number" /></el-form-item>
+        <el-form-item label="毕业年份"><el-input v-model="verifyForm.graduationYear" type="number" /></el-form-item>
+        <el-form-item label="学院"><el-input v-model="verifyForm.college" /></el-form-item>
+        <el-form-item label="专业"><el-input v-model="verifyForm.major" /></el-form-item>
+        <el-form-item label="公司"><el-input v-model="verifyForm.company" /></el-form-item>
+        <el-form-item label="职位"><el-input v-model="verifyForm.position" /></el-form-item>
+        <el-form-item label="城市"><el-input v-model="verifyForm.city" /></el-form-item>
+        <el-form-item label="个人简介"><el-input v-model="verifyForm.bio" type="textarea" :rows="3" maxlength="500" show-word-limit /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="verifyDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="verifySubmitting" @click="submitVerify">提交申请</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -183,8 +245,11 @@ import { Loading, Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue
 import { useUserStore } from '../stores/user'
 import { alumniApi } from '../api/alumni'
 import { postApi } from '../api/post'
+import { authApi } from '../api/auth'
 import UserInfoCard from '../components/UserInfoCard.vue'
 import ProfileInfoTab from '../components/ProfileInfoTab.vue'
+import ResolvedAvatar from '../components/ResolvedAvatar.vue'
+import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,7 +257,7 @@ const userStore = useUserStore()
 
 const alumniId = ref(Number(route.params.id))
 const userInfo = ref({})
-const followStats = ref({ following: 0, followers: 0 })
+const followStats = ref({ followingCount: 0, followerCount: 0 })
 const userPosts = ref([])
 const loading = ref(true)
 const postsLoading = ref(false)
@@ -209,6 +274,32 @@ const followersLoading = ref(false)
 const followingPageNum = ref(1)
 const followersPageNum = ref(1)
 const followPageSize = ref(20)
+const verifyStatusInfo = ref({
+  verifyStatus: -1,
+  verifyNotes: '',
+  verifyTime: '',
+  role: ''
+})
+const verifyDialogVisible = ref(false)
+const verifySubmitting = ref(false)
+const verifyFormRef = ref()
+const verifyForm = ref({
+  realName: '',
+  studentId: '',
+  admissionYear: '',
+  graduationYear: '',
+  college: '',
+  major: '',
+  company: '',
+  position: '',
+  city: '',
+  bio: ''
+})
+const verifyRules = {
+  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+  studentId: [{ required: true, message: '请输入学号', trigger: 'blur' }],
+  admissionYear: [{ required: true, message: '请输入入学年份', trigger: 'blur' }]
+}
 
 const isSelf = computed(() => {
   const isLoggedIn = userStore.isLoggedIn
@@ -225,6 +316,11 @@ const isSelf = computed(() => {
   })
   return result
 })
+
+/** 普通用户查看他人主页：档案/关注/粉丝等需模糊 */
+const otherProfileLocked = computed(
+  () => !isSelf.value && userStore.role === 'USER'
+)
 
 const formatTime = (time) => {
   if (!time) return ''
@@ -264,7 +360,8 @@ const getUserProfile = async () => {
       console.log('获取当前用户校友信息响应:', currentProfileResponse)
       
       if (currentProfileResponse.code === 200) {
-        userInfo.value = currentProfileResponse.data
+        const d = currentProfileResponse.data
+        userInfo.value = { ...d, enrollYear: d.admissionYear ?? d.enrollYear }
         console.log('使用当前用户的校友信息')
         console.log('当前用户校友信息:', userInfo.value)
       } else {
@@ -283,13 +380,40 @@ const getUserProfile = async () => {
   }
 }
 
-// 根据用户ID获取校友信息
+// 根据用户ID获取校友信息（与动态圈 /profile/:userId 一致，优先调档案接口）
 const fetchProfileByUserId = async (userId) => {
   try {
-    // 尝试从关注列表或粉丝列表中获取用户信息
+    const res = await alumniApi.getProfileById(userId)
+    if (res.code === 200 && res.data) {
+      const d = res.data
+      userInfo.value = {
+        userId: d.userId,
+        username: d.username,
+        realName: d.realName,
+        avatar: d.avatar ? String(d.avatar).replace(/`/g, '') : '',
+        admissionYear: d.admissionYear,
+        enrollYear: d.admissionYear,
+        graduationYear: d.graduationYear,
+        college: d.college,
+        major: d.major,
+        company: d.company,
+        position: d.position,
+        city: d.city,
+        bio: d.bio || '',
+        verifyStatus: d.verifyStatus,
+        role: d.role,
+        postCount: d.postCount
+      }
+      return
+    }
+  } catch (e) {
+    console.warn('档案接口未返回，尝试从关注/动态兜底:', e)
+  }
+
+  try {
     const allUsers = [...followingList.value, ...followersList.value]
-    const userFromList = allUsers.find(user => user.userId === userId)
-    
+    const userFromList = allUsers.find((user) => user.userId === userId)
+
     if (userFromList) {
       userInfo.value = {
         userId: userFromList.userId,
@@ -306,18 +430,12 @@ const fetchProfileByUserId = async (userId) => {
         bio: '',
         verifyStatus: userFromList.verifyStatus
       }
-      console.log('使用从关注/粉丝列表中提取的用户信息')
-      console.log('用户信息:', userInfo.value)
       return
     }
-    
-    // 如果在关注/粉丝列表中找不到，尝试从动态中获取用户信息
+
     const postsResponse = await postApi.getUserPosts(userId, 1, 1)
-    console.log('根据用户ID获取动态响应:', postsResponse)
-    
     if (postsResponse.code === 200 && postsResponse.data.list.length > 0) {
       const firstPost = postsResponse.data.list[0]
-      // 从动态中提取用户信息
       userInfo.value = {
         userId: firstPost.userId,
         username: firstPost.username,
@@ -333,36 +451,13 @@ const fetchProfileByUserId = async (userId) => {
         bio: '',
         verifyStatus: firstPost.verifyStatus
       }
-      console.log('使用从动态中提取的用户信息')
-      console.log('用户信息:', userInfo.value)
-    } else {
-      console.log('根据用户ID获取动态失败，无法提取用户信息')
-      // 设置一个默认的用户信息，避免页面空白
-      userInfo.value = {
-        userId: userId,
-        username: '',
-        realName: '未知用户',
-        avatar: '',
-        admissionYear: '',
-        graduationYear: '',
-        college: '',
-        major: '',
-        company: '',
-        position: '',
-        city: '',
-        bio: '',
-        verifyStatus: 0
-      }
-      console.log('使用默认用户信息')
-      console.log('用户信息:', userInfo.value)
+      return
     }
-  } catch (error) {
-    console.error('根据用户ID获取校友信息失败:', error)
-    // 设置一个默认的用户信息，避免页面空白
+
     userInfo.value = {
-      userId: userId,
+      userId,
       username: '',
-      realName: '未知用户',
+      realName: '用户',
       avatar: '',
       admissionYear: '',
       graduationYear: '',
@@ -372,10 +467,25 @@ const fetchProfileByUserId = async (userId) => {
       position: '',
       city: '',
       bio: '',
-      verifyStatus: 0
+      verifyStatus: null
     }
-    console.log('使用默认用户信息')
-    console.log('用户信息:', userInfo.value)
+  } catch (error) {
+    console.error('根据用户ID获取校友信息失败:', error)
+    userInfo.value = {
+      userId,
+      username: '',
+      realName: '用户',
+      avatar: '',
+      admissionYear: '',
+      graduationYear: '',
+      college: '',
+      major: '',
+      company: '',
+      position: '',
+      city: '',
+      bio: '',
+      verifyStatus: null
+    }
   }
 }
 
@@ -461,10 +571,11 @@ const getUserPosts = async (refresh = false) => {
     
     if (response.code === 200) {
       const { list, total, pageNum, pageSize } = response.data
-      
-      // 设置动态数
-      userInfo.value.postCount = total
-      console.log('设置动态数:', total)
+      const totalNum = total != null ? Number(total) : 0
+
+      // 动态总数（依赖后端 MyBatis-Plus 分页插件正确填充 total）
+      userInfo.value.postCount = totalNum
+      console.log('设置动态数:', totalNum)
       
       if (refresh) {
         userPosts.value = list
@@ -481,8 +592,8 @@ const getUserPosts = async (refresh = false) => {
           }
           // 设置关注统计
           followStats.value = {
-            following: 0,
-            followers: 0
+            followingCount: 0,
+            followerCount: 0
           }
         }
       } else {
@@ -512,11 +623,20 @@ const handleEditProfile = () => {
   router.push('/profile/edit')
 }
 
-const handleLikeClick = async (postId) => {
+const isLockedPost = (post) => {
+  if (!post) return false
+  if (String(post.userId) === String(userStore.userId)) return false
+  if (userStore.role !== 'USER') return false
+  return post.locked === true || post.visibility === 1
+}
+
+const handleLikeClick = async (post) => {
+  if (isLockedPost(post)) {
+    ElMessage.warning('该动态仅校友可见，请先完成校友认证')
+    return
+  }
   try {
-    const post = userPosts.value.find(p => p.id === postId)
     if (!post) return
-    
     if (post.isLiked) {
       post.isLiked = false
       post.likeCount--
@@ -529,12 +649,20 @@ const handleLikeClick = async (postId) => {
   }
 }
 
-const handleCommentClick = (postId) => {
-  router.push(`/post/${postId}`)
+const handleCommentClick = (post) => {
+  if (isLockedPost(post)) {
+    ElMessage.warning('该动态仅校友可见，请先完成校友认证')
+    return
+  }
+  router.push(`/post/${post.id}`)
 }
 
-const handlePostClick = (postId) => {
-  router.push(`/post/${postId}`)
+const handlePostClick = (post) => {
+  if (isLockedPost(post)) {
+    ElMessage.warning('该动态仅校友可见，请先完成校友认证')
+    return
+  }
+  router.push(`/post/${post.id}`)
 }
 
 const handleUserClick = (userId) => {
@@ -548,8 +676,85 @@ const handleUserClick = (userId) => {
   }
 }
 
-const handleImageClick = (imageUrl) => {
+const handleImageClick = (imageUrl, post) => {
+  if (post && isLockedPost(post)) {
+    ElMessage.warning('该动态仅校友可见，请先完成校友认证')
+    return
+  }
   console.log('查看图片:', imageUrl)
+}
+
+const getVerifyTagType = (status) => {
+  if (status === 1) return 'success'
+  if (status === 0) return 'warning'
+  if (status === 2) return 'danger'
+  return 'info'
+}
+
+const getVerifyText = (status) => {
+  if (status === 1) return '已通过'
+  if (status === 0) return '审核中'
+  if (status === 2) return '已驳回'
+  return '未提交'
+}
+
+const syncRoleFromVerifyStatus = (role) => {
+  if (!role || role === userStore.role) return
+  userStore.role = role
+  localStorage.setItem('role', role)
+}
+
+const loadVerifyStatus = async () => {
+  if (!isSelf.value || userStore.role === 'ADMIN') return
+  try {
+    const res = await authApi.getAlumniVerifyStatus()
+    if (res.code === 200 && res.data) {
+      verifyStatusInfo.value = res.data
+      syncRoleFromVerifyStatus(res.data.role)
+    }
+  } catch (error) {
+    console.error('获取校友认证状态失败:', error)
+  }
+}
+
+const openVerifyDialogPrefill = () => {
+  verifyForm.value = {
+    realName: userInfo.value.realName || '',
+    studentId: userInfo.value.studentId || '',
+    admissionYear: userInfo.value.admissionYear || '',
+    graduationYear: userInfo.value.graduationYear || '',
+    college: userInfo.value.college || '',
+    major: userInfo.value.major || '',
+    company: userInfo.value.company || '',
+    position: userInfo.value.position || '',
+    city: userInfo.value.city || '',
+    bio: userInfo.value.bio || ''
+  }
+}
+
+const submitVerify = async () => {
+  if (!verifyFormRef.value) return
+  await verifyFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    verifySubmitting.value = true
+    try {
+      const payload = {
+        ...verifyForm.value,
+        admissionYear: Number(verifyForm.value.admissionYear),
+        graduationYear: verifyForm.value.graduationYear ? Number(verifyForm.value.graduationYear) : null
+      }
+      const res = await authApi.submitAlumniVerify(payload)
+      if (res.code === 200) {
+        ElMessage.success('提交成功，等待管理员审核')
+        verifyDialogVisible.value = false
+        await loadVerifyStatus()
+      }
+    } catch (error) {
+      console.error('提交校友认证失败:', error)
+    } finally {
+      verifySubmitting.value = false
+    }
+  })
 }
 
 onMounted(async () => {
@@ -564,7 +769,8 @@ onMounted(async () => {
     await getUserProfile()
     await Promise.all([
       getFollowStats(),
-      getUserPosts(true)
+      getUserPosts(true),
+      loadVerifyStatus()
     ])
   } catch (error) {
     console.error('初始化失败:', error)
@@ -581,24 +787,26 @@ onMounted(async () => {
   }
 })
 
-// 监听路由参数变化
+// 监听路由参数变化（先拉档案再拉动态，避免并行结束时档案覆盖掉已写入的 postCount）
 watch(
   () => route.params.id,
-  (newId, oldId) => {
+  async (newId, oldId) => {
     console.log('路由参数变化:', { newId, oldId })
     if (newId !== oldId) {
       alumniId.value = Number(newId)
-      // 重新加载数据
       loading.value = true
-      Promise.all([
-        getUserProfile(),
-        getFollowStats(),
-        getFollowingList(),
-        getFollowersList(),
-        getUserPosts(true)
-      ]).finally(() => {
+      try {
+        await getUserProfile()
+        await Promise.all([
+          getFollowStats(),
+          getFollowingList(),
+          getFollowersList(),
+          getUserPosts(true),
+          loadVerifyStatus()
+        ])
+      } finally {
         loading.value = false
-      })
+      }
     }
   }
 )
@@ -609,6 +817,10 @@ watch(activeTab, (newTab) => {
   } else if (newTab === 'followers' && followersList.value.length === 0) {
     getFollowersList()
   }
+})
+
+watch(verifyDialogVisible, (visible) => {
+  if (visible) openVerifyDialogPrefill()
 })
 </script>
 
@@ -661,6 +873,25 @@ watch(activeTab, (newTab) => {
   gap: 20px;
 }
 
+.verify-card {
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.verify-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.verify-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #606266;
+}
+
 .profile-tabs {
   background-color: #fff;
   border-radius: 8px;
@@ -707,6 +938,7 @@ watch(activeTab, (newTab) => {
   background-color: #fff;
   border-radius: 8px;
   padding: 16px;
+  border: 1px solid transparent;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   transition: box-shadow 0.3s;
@@ -714,6 +946,19 @@ watch(activeTab, (newTab) => {
 
 .post-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.post-card.locked {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.post-card.locked .text-content {
+  filter: blur(6px);
+  user-select: none;
+}
+
+.post-card.locked .image-item :deep(.el-image__inner) {
+  filter: blur(8px);
 }
 
 .post-header {
@@ -732,6 +977,12 @@ watch(activeTab, (newTab) => {
   flex-direction: column;
 }
 
+.username-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .username {
   font-size: 16px;
   font-weight: bold;
@@ -746,6 +997,18 @@ watch(activeTab, (newTab) => {
 
 .post-content {
   margin-bottom: 12px;
+}
+
+.lock-banner {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .text-content {

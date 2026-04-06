@@ -1,11 +1,16 @@
 <template>
-  <div class="message-detail-container">
+  <div class="message-page">
+    <AppShellBar />
+    <div class="message-detail-container">
     <div class="message-header">
       <el-button type="text" @click="goBack" class="back-button">
         <el-icon><ArrowLeft /></el-icon>
       </el-button>
       <div class="user-info">
-        <el-avatar :size="40" :src="userInfo.avatar" class="header-avatar" />
+        <el-avatar :size="40" :src="avatarUrl" class="header-avatar">
+          <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
+          <span v-else>{{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}</span>
+        </el-avatar>
         <span class="user-name">{{ userInfo.realName || userInfo.username }}</span>
         <span v-if="userInfo.online" class="online-status">在线</span>
       </div>
@@ -14,11 +19,12 @@
       </el-button>
     </div>
 
+    <AlumniOnlyBlur :locked="isUserNonAlumni">
     <div
       class="messages-list"
       ref="messagesListRef"
       v-infinite-scroll="loadMore"
-      :infinite-scroll-disabled="loading || !hasMore"
+      :infinite-scroll-disabled="loading || !hasMore || isUserNonAlumni"
       :infinite-scroll-distance="10"
     >
       <div v-if="loading && messages.length === 0" class="loading-container">
@@ -63,6 +69,7 @@
         :rows="1"
         resize="none"
         class="message-input"
+        :disabled="isUserNonAlumni"
         @keyup.enter.exact="sendMessage"
         @keydown.shift.enter.prevent="handleShiftEnter"
       />
@@ -70,10 +77,12 @@
         type="primary"
         @click="sendMessage"
         class="send-button"
-        :disabled="!messageContent.trim() || sending"
+        :disabled="!messageContent.trim() || sending || isUserNonAlumni"
       >
         发送
       </el-button>
+    </div>
+    </AlumniOnlyBlur>
     </div>
   </div>
 </template>
@@ -86,13 +95,17 @@ import { ArrowLeft, More, Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useMessageStore } from '../stores/message'
 import { messageApi } from '../api/message'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 import websocketManager from '../utils/websocket-manager'
 import MessageBubble from '../components/MessageBubble.vue'
+import AppShellBar from '../components/AppShellBar.vue'
+import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const messageStore = useMessageStore()
+const isUserNonAlumni = computed(() => userStore.role === 'USER')
 
 const messageContent = ref('')
 const messages = ref([])
@@ -103,6 +116,7 @@ const userInfo = ref({
   avatar: '',
   online: false
 })
+const avatarUrl = ref('')
 const loading = ref(false)
 const hasMore = ref(true)
 const pageNum = ref(1)
@@ -197,6 +211,10 @@ const fetchMessages = async (refresh = false) => {
             avatar: targetMessage.senderAvatar
           }
         }
+        
+        if (userInfo.value.avatar) {
+          avatarUrl.value = await resolveAvatarUrl(userInfo.value.avatar)
+        }
       }
     }
   } catch (error) {
@@ -208,6 +226,10 @@ const fetchMessages = async (refresh = false) => {
 }
 
 const sendMessage = async () => {
+  if (userStore.role === 'USER') {
+    ElMessage.warning('请先完成校友认证，认证后可发私信')
+    return
+  }
   if (!messageContent.value.trim() || sending.value) {
     return
   }
@@ -278,6 +300,10 @@ const sendMessage = async () => {
 }
 
 const retryMessage = async (message) => {
+  if (userStore.role === 'USER') {
+    ElMessage.warning('请先完成校友认证')
+    return
+  }
   if (message.status !== 'failed') return
 
   const index = messages.value.findIndex(m => m.clientMessageId === message.clientMessageId)
@@ -453,21 +479,33 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.message-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .message-detail-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f5f7fa;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - var(--shell-h));
+  max-width: var(--content-max);
+  margin: 0 auto;
+  width: 100%;
   position: relative;
+  background: transparent;
 }
 
 .message-header {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
-  background-color: #fff;
-  border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
 }
 
 .back-button {
@@ -487,8 +525,9 @@ onUnmounted(() => {
 
 .user-name {
   font-size: 16px;
-  font-weight: bold;
-  color: #303133;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .online-status {
@@ -566,10 +605,11 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  padding: 16px;
-  background-color: #fff;
-  border-top: 1px solid #e4e7ed;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px 20px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -8px 24px rgba(12, 18, 34, 0.06);
 }
 
 .message-input {

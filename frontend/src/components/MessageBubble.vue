@@ -1,7 +1,7 @@
 <template>
   <div class="message-bubble-container" :class="{ 'self-message': isSelf, 'other-message': !isSelf }">
     <div v-if="!isSelf" class="message-avatar">
-      <el-avatar :size="36" :src="avatar" />
+      <el-avatar :size="36" :src="displayAvatarUrl" />
     </div>
 
     <div class="message-content-wrapper" :class="{ 'self-content': isSelf, 'other-content': !isSelf }">
@@ -34,13 +34,15 @@
     </div>
 
     <div v-if="isSelf" class="message-avatar">
-      <el-avatar :size="36" :src="avatar" />
+      <el-avatar :size="36" :src="displayAvatarUrl" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 
 const props = defineProps({
   isSelf: {
@@ -74,6 +76,16 @@ const props = defineProps({
 })
 
 defineEmits(['retry'])
+
+const displayAvatarUrl = ref('')
+
+watch(
+  () => props.avatar,
+  async (v) => {
+    displayAvatarUrl.value = await resolveAvatarUrl(v || '')
+  },
+  { immediate: true }
+)
 
 const formatTime = (time) => {
   if (!time) return ''
@@ -132,15 +144,17 @@ const formatTime = (time) => {
 }
 
 .self-bubble {
-  background-color: #ecf5ff;
-  border: 1px solid #b3d8ff;
-  border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 2px 12px rgba(79, 70, 229, 0.08);
 }
 
 .other-bubble {
-  background-color: #ffffff;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-subtle);
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--shadow-sm);
 }
 
 .message-text {

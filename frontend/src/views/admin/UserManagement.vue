@@ -47,9 +47,8 @@
           <el-col :span="6">
             <el-form-item label="状态">
               <el-select v-model="queryForm.status" placeholder="请选择状态">
-                <el-option label="正常" value="normal"></el-option>
-                <el-option label="禁用" value="disabled"></el-option>
-                <el-option label="待审核" value="pending"></el-option>
+                <el-option label="正常" :value="1"></el-option>
+                <el-option label="禁用" :value="0"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -88,13 +87,36 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="verifyStatus" label="校友认证" width="110">
+          <template #default="scope">
+            <el-tag :type="getVerifyTagType(scope.row.verifyStatus)">
+              {{ getVerifyText(scope.row.verifyStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="createdAt" label="注册时间" width="180" sortable />
         <el-table-column prop="lastLoginTime" label="最后登录" width="180" />
-        <el-table-column label="操作" width="240">
+        <el-table-column label="操作" width="360">
           <template #default="scope">
             <el-button type="primary" size="small" @click="viewUserDetail(scope.row.id)">查看详情</el-button>
             <el-button type="success" size="small" @click="openStatusDialog(scope.row)">修改状态</el-button>
             <el-button type="warning" size="small" @click="openRoleDialog(scope.row)">修改角色</el-button>
+            <el-button
+              v-if="scope.row.verifyStatus === 0"
+              type="success"
+              size="small"
+              @click="quickAudit(scope.row, 1)"
+            >
+              认证通过
+            </el-button>
+            <el-button
+              v-if="scope.row.verifyStatus === 0"
+              type="danger"
+              size="small"
+              @click="quickAudit(scope.row, 2)"
+            >
+              驳回
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -149,13 +171,19 @@
             <el-descriptions-item label="城市">{{ userDetail.alumniInfo.city || '未设置' }}</el-descriptions-item>
             <el-descriptions-item label="个人简介">{{ userDetail.alumniInfo.bio || '未设置' }}</el-descriptions-item>
             <el-descriptions-item label="认证状态">
-              <el-tag :type="userDetail.alumniInfo.verifyStatus === 'VERIFIED' ? 'success' : 'warning'">
-                {{ userDetail.alumniInfo.verifyStatus === 'VERIFIED' ? '已认证' : '待认证' }}
+              <el-tag :type="getVerifyTagType(userDetail.alumniInfo.verifyStatus)">
+                {{ getVerifyText(userDetail.alumniInfo.verifyStatus) }}
               </el-tag>
             </el-descriptions-item>
+            <el-descriptions-item label="审核备注">{{ userDetail.alumniInfo.verifyNotes || '无' }}</el-descriptions-item>
+            <el-descriptions-item label="审核时间">{{ userDetail.alumniInfo.verifyTime || '无' }}</el-descriptions-item>
           </el-descriptions>
           <div v-else class="no-alumni-info">
             暂无校友信息
+          </div>
+          <div v-if="userDetail.alumniInfo && userDetail.alumniInfo.verifyStatus === 0" style="margin-top: 12px;">
+            <el-button type="success" @click="quickAudit(userDetail, 1)">认证通过</el-button>
+            <el-button type="danger" @click="quickAudit(userDetail, 2)">驳回</el-button>
           </div>
         </div>
       </el-drawer>
@@ -169,9 +197,8 @@
         <el-form>
           <el-form-item label="新状态">
             <el-select v-model="newStatus" placeholder="请选择新状态">
-              <el-option label="正常" value="normal"></el-option>
-              <el-option label="禁用" value="disabled"></el-option>
-              <el-option label="待审核" value="pending"></el-option>
+              <el-option label="正常" :value="1"></el-option>
+              <el-option label="禁用" :value="0"></el-option>
             </el-select>
           </el-form-item>
         </el-form>
@@ -222,7 +249,7 @@ const queryForm = reactive({
   realName: '',
   studentId: '',
   role: '',
-  status: ''
+  status: null
 })
 
 // 分页参数
@@ -250,56 +277,11 @@ const newRole = ref('')
 const getUserList = async () => {
   try {
     const response = await adminApi.getUserList(pageNum.value, pageSize.value, queryForm)
-    userList.value = response.records
-    total.value = response.total
+    userList.value = response.data?.records || []
+    total.value = response.data?.total || 0
   } catch (error) {
     console.error('获取用户列表失败:', error)
-    // 模拟数据
-    userList.value = [
-      {
-        id: 1,
-        username: 'admin',
-        email: 'admin@example.com',
-        phone: '13800138000',
-        avatar: '',
-        role: 'ADMIN',
-        status: 'normal',
-        lastLoginTime: '2026-01-28 10:00:00',
-        createdAt: '2026-01-01 00:00:00',
-        realName: '管理员',
-        studentId: '20200001',
-        verifyStatus: 'VERIFIED'
-      },
-      {
-        id: 2,
-        username: 'user1',
-        email: 'user1@example.com',
-        phone: '13800138001',
-        avatar: '',
-        role: 'USER',
-        status: 'normal',
-        lastLoginTime: '2026-01-27 15:30:00',
-        createdAt: '2026-01-02 00:00:00',
-        realName: '用户1',
-        studentId: '20200002',
-        verifyStatus: 'PENDING'
-      },
-      {
-        id: 3,
-        username: 'user2',
-        email: 'user2@example.com',
-        phone: '13800138002',
-        avatar: '',
-        role: 'ALUMNI',
-        status: 'disabled',
-        lastLoginTime: '2026-01-26 09:00:00',
-        createdAt: '2026-01-03 00:00:00',
-        realName: '用户2',
-        studentId: '20200003',
-        verifyStatus: 'VERIFIED'
-      }
-    ]
-    total.value = 3
+    ElMessage.error('获取用户列表失败')
   }
 }
 
@@ -311,7 +293,7 @@ const resetForm = () => {
   queryForm.realName = ''
   queryForm.studentId = ''
   queryForm.role = ''
-  queryForm.status = ''
+  queryForm.status = null
   getUserList()
 }
 
@@ -358,12 +340,10 @@ const getRoleText = (role) => {
 // 获取状态标签类型
 const getStatusTagType = (status) => {
   switch (status) {
-    case 'normal':
+    case 1:
       return 'success'
-    case 'disabled':
+    case 0:
       return 'danger'
-    case 'pending':
-      return 'warning'
     default:
       return ''
   }
@@ -372,14 +352,38 @@ const getStatusTagType = (status) => {
 // 获取状态文本
 const getStatusText = (status) => {
   switch (status) {
-    case 'normal':
+    case 1:
       return '正常'
-    case 'disabled':
+    case 0:
       return '禁用'
-    case 'pending':
-      return '待审核'
     default:
-      return status
+      return '未知'
+  }
+}
+
+const getVerifyTagType = (status) => {
+  switch (status) {
+    case 1:
+      return 'success'
+    case 0:
+      return 'warning'
+    case 2:
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+const getVerifyText = (status) => {
+  switch (status) {
+    case 1:
+      return '已通过'
+    case 0:
+      return '待审核'
+    case 2:
+      return '已驳回'
+    default:
+      return '未提交'
   }
 }
 
@@ -387,36 +391,11 @@ const getStatusText = (status) => {
 const viewUserDetail = async (userId) => {
   try {
     const response = await adminApi.getUserDetail(userId)
-    userDetail.value = response
+    userDetail.value = response.data
     userDetailDrawerVisible.value = true
   } catch (error) {
     console.error('获取用户详情失败:', error)
-    // 模拟数据
-    userDetail.value = {
-      id: userId,
-      username: 'admin',
-      email: 'admin@example.com',
-      phone: '13800138000',
-      avatar: '',
-      role: 'ADMIN',
-      status: 'normal',
-      createdAt: '2026-01-01 00:00:00',
-      lastLoginTime: '2026-01-28 10:00:00',
-      alumniInfo: {
-        realName: '管理员',
-        studentId: '20200001',
-        admissionYear: '2020',
-        graduationYear: '2024',
-        college: '计算机学院',
-        major: '计算机科学与技术',
-        company: '科技公司',
-        position: '工程师',
-        city: '北京',
-        bio: '这是个人简介',
-        verifyStatus: 'VERIFIED'
-      }
-    }
-    userDetailDrawerVisible.value = true
+    ElMessage.error('获取用户详情失败')
   }
 }
 
@@ -449,6 +428,41 @@ const confirmUpdateStatus = async () => {
     if (error !== 'cancel') {
       console.error('更新用户状态失败:', error)
       ElMessage.error('更新用户状态失败')
+    }
+  }
+}
+
+const quickAudit = async (row, verifyStatus) => {
+  const userId = row.id
+  try {
+    let verifyNotes = ''
+    if (verifyStatus === 2) {
+      const promptResult = await ElMessageBox.prompt('请输入驳回原因', '驳回认证', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '例如：学号与姓名不匹配',
+        inputValidator: (value) => !!String(value || '').trim() || '驳回原因不能为空'
+      })
+      verifyNotes = promptResult.value
+    } else {
+      await ElMessageBox.confirm('确认通过该用户的校友认证吗？', '认证审核', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    }
+
+    await adminApi.auditAlumniVerify(userId, verifyStatus, verifyNotes)
+    ElMessage.success(verifyStatus === 1 ? '已通过认证' : '已驳回认证')
+    if (userDetail.value?.id === userId) {
+      await viewUserDetail(userId)
+    }
+    await getUserList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('审核认证失败:', error)
+      ElMessage.error('审核认证失败')
     }
   }
 }

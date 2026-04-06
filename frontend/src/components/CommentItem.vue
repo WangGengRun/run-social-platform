@@ -2,7 +2,7 @@
   <div class="comment-item">
     <div class="comment-header">
       <div class="user-info" @click="handleUserClick(comment.userId)">
-        <el-avatar :size="32" :src="comment.avatar" />
+        <ResolvedAvatar :size="32" :src="comment.avatar || ''" />
         <div class="user-details">
           <div class="username">{{ comment.realName || comment.username }}</div>
           <div class="time">{{ formatTime(comment.createdAt) }}</div>
@@ -38,6 +38,7 @@ import { defineProps, defineEmits } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { postApi } from '../api/post'
 import CommentItem from './CommentItem.vue'
+import ResolvedAvatar from './ResolvedAvatar.vue'
 
 const props = defineProps({
   comment: {

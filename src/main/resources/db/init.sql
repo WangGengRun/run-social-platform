@@ -6,7 +6,7 @@ CREATE TABLE `user` (
                         `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
                         `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
                         `avatar` varchar(200) DEFAULT NULL COMMENT '头像URL',
-                        `role` varchar(20) DEFAULT 'ALUMNI' COMMENT '角色：ADMIN-管理员, ALUMNI-校友',
+                        `role` varchar(20) DEFAULT 'USER' COMMENT '角色：USER-普通用户, ADMIN-管理员, ALUMNI-校友',
                         `status` int DEFAULT '1' COMMENT '状态：0-禁用, 1-启用',
                         `last_login_time` datetime DEFAULT NULL COMMENT '最后登录时间',
                         `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

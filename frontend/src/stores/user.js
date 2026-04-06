@@ -53,6 +53,13 @@ export const useUserStore = defineStore('user', {
     setRememberPassword(remember) {
       this.rememberPassword = remember
       localStorage.setItem('rememberPassword', remember)
+    },
+
+    /** 合并更新本地用户信息并持久化（用于改头像、改资料后与登录态一致） */
+    patchUserInfo(partial) {
+      if (!partial || typeof partial !== 'object') return
+      this.userInfo = { ...this.userInfo, ...partial }
+      localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
     }
   }
 })

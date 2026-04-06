@@ -18,6 +18,16 @@ export const authApi = {
   // 登录
   login: (loginDTO) => {
     return service.post('/auth/login', loginDTO)
+  },
+
+  // 提交校友认证
+  submitAlumniVerify: (verifyDTO) => {
+    return service.post('/auth/alumni/verify', verifyDTO)
+  },
+
+  // 获取当前认证状态
+  getAlumniVerifyStatus: () => {
+    return service.get('/auth/alumni/verify/status')
   }
 }
 

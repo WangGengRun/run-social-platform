@@ -84,6 +84,7 @@
             a.created_at as createTime,
             u.username,
             u.avatar,
+            u.role,
             CASE
                 WHEN a.user_id = #{currentUserId} THEN true
                 ELSE false
@@ -101,6 +102,45 @@
             AND f.followee_id = a.user_id
             AND f.status = 1
         WHERE a.id = #{alumniId}
+          AND u.status = 1
+    </select>
+
+    <!-- 根据用户ID查询校友详情（路由参数为 user.id，与动态圈跳转一致） -->
+    <select id="selectAlumniDetailByUserId" resultType="com.run.runsocialplatform.module.alumni.model.vo.AlumniProfileVO">
+        SELECT
+            a.id as alumniId,
+            u.id as userId,
+            COALESCE(a.real_name, u.username) as realName,
+            a.admission_year as admissionYear,
+            a.graduation_year as graduationYear,
+            a.college,
+            a.major,
+            a.company,
+            a.position,
+            a.city,
+            a.bio,
+            a.verify_status as verifyStatus,
+            COALESCE(a.created_at, u.created_at) as createTime,
+            u.username,
+            u.avatar,
+            u.role,
+            CASE
+                WHEN u.id = #{currentUserId} THEN true
+                ELSE false
+            END as isSelf,
+            CASE
+                WHEN f.id IS NOT NULL THEN true
+                ELSE false
+            END as isFollowed,
+            (SELECT COUNT(*) FROM post p WHERE p.user_id = u.id AND p.status = 1) as postCount,
+            (SELECT COUNT(*) FROM follow f1 WHERE f1.followee_id = u.id AND f1.status = 1) as followerCount,
+            (SELECT COUNT(*) FROM follow f2 WHERE f2.follower_id = u.id AND f2.status = 1) as followingCount
+        FROM user u
+        LEFT JOIN alumni_info a ON a.user_id = u.id
+        LEFT JOIN follow f ON f.follower_id = #{currentUserId}
+            AND f.followee_id = u.id
+            AND f.status = 1
+        WHERE u.id = #{userId}
           AND u.status = 1
     </select>
 

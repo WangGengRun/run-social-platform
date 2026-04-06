@@ -8,7 +8,9 @@
         </div>
       </template>
       <div class="user-info">
-        <el-avatar :size="80" :src="userStore.userInfo?.avatar || ''">{{ userStore.username?.[0] || '用' }}</el-avatar>
+        <ResolvedAvatar :size="80" :src="userStore.userInfo?.avatar || ''">
+          {{ userStore.username?.[0] || '用' }}
+        </ResolvedAvatar>
         <h2>{{ userStore.username }}</h2>
         <p v-if="userStore.userInfo?.phone">手机号: {{ userStore.userInfo.phone }}</p>
         <p v-if="userStore.userInfo?.email">邮箱: {{ userStore.userInfo.email }}</p>
@@ -30,6 +32,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import ResolvedAvatar from '../components/ResolvedAvatar.vue'
 import { alumniApi } from '../api/alumni'
 
 const router = useRouter()
