@@ -19,13 +19,14 @@
           class="activity-form"
         >
           <el-form-item label="封面图" prop="coverImage">
-            <div class="cover-uploader">
+            <div class="cover-uploader" v-loading="coverUploading">
               <el-upload
                 v-model:file-list="coverFileList"
                 :auto-upload="false"
                 :on-change="handleCoverChange"
                 :limit="1"
                 :on-exceed="handleExceed"
+                :disabled="coverUploading"
                 accept=".jpg,.jpeg,.png,.gif"
                 list-type="picture-card"
                 class="cover-upload"
@@ -97,7 +98,7 @@
           
           <el-form-item class="form-actions">
             <el-button @click="handleCancel" class="cancel-button">取消</el-button>
-            <el-button type="primary" @click="handleSubmit" :loading="loading" class="submit-button">创建</el-button>
+            <el-button type="primary" @click="handleSubmit" :loading="loading" :disabled="coverUploading" class="submit-button">创建</el-button>
           </el-form-item>
         </el-form>
       </div>
@@ -116,6 +117,7 @@ import { activityApi } from '../api/activity'
 import AppShellBar from '../components/AppShellBar.vue'
 import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
 import { useUserStore } from '../stores/user'
+import { resolveAvatarUrl } from '../utils/avatarUrl'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -134,6 +136,7 @@ const form = ref({
 })
 
 const coverFileList = ref([])
+const coverUploading = ref(false)
 
 const rules = ref({
   title: [
@@ -166,22 +169,31 @@ const rules = ref({
   ]
 })
 
-const handleCoverChange = (file, fileList) => {
+const handleCoverChange = async (file, fileList) => {
   coverFileList.value = fileList
-  // 处理图片上传逻辑
-  // 这里需要将文件转换为URL或上传到服务器
-  // 暂时使用本地预览
-  if (file.raw) {
-    const reader = new FileReader()
-    reader.readAsDataURL(file.raw)
-    reader.onload = (e) => {
-      file.url = e.target.result
-      form.value.coverImage = e.target.result
+  if (!file.raw) return
+  coverUploading.value = true
+  form.value.coverImage = ''
+  try {
+    const fd = new FormData()
+    fd.append('file', file.raw)
+    const res = await activityApi.uploadCover(fd)
+    const objectName = typeof res.data === 'string' ? res.data : res.data?.data
+    if (!objectName) {
+      throw new Error('未返回文件路径')
     }
+    form.value.coverImage = objectName
+    file.url = await resolveAvatarUrl(objectName)
+  } catch (e) {
+    console.error(e)
+    coverFileList.value = []
+    form.value.coverImage = ''
+  } finally {
+    coverUploading.value = false
   }
 }
 
-const handleCoverDelete = (file) => {
+const handleCoverDelete = () => {
   coverFileList.value = []
   form.value.coverImage = ''
 }
@@ -210,8 +222,8 @@ const handleSubmit = async () => {
         
         if (response.code === 200) {
           ElMessage.success('创建成功')
-          // 跳转到活动详情页（占位）
-          router.push('/activity/' + response.data.id || '/')
+          const id = response.data
+          router.push(id != null ? `/activity/${id}` : '/activity')
         } else {
           ElMessage.error('创建失败，请重试')
         }

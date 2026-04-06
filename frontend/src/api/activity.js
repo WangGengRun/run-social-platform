@@ -1,6 +1,26 @@
 import service from './request'
 
+const formDataConfig = {
+  transformRequest: [
+    (data, headers) => {
+      if (typeof FormData !== 'undefined' && data instanceof FormData) {
+        if (headers && typeof headers.delete === 'function') {
+          headers.delete('Content-Type')
+        } else if (headers) {
+          delete headers['Content-Type']
+        }
+      }
+      return data
+    }
+  ]
+}
+
 export const activityApi = {
+  /** 上传活动封面，返回 MinIO objectName，创建活动时填入 coverImage */
+  uploadCover: (formData) => {
+    return service.post('/activity/cover/upload', formData, formDataConfig)
+  },
+
   createActivity: (activityData) => {
     return service.post('/activity', activityData)
   },

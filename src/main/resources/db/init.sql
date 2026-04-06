@@ -130,7 +130,7 @@ CREATE TABLE `activity` (
                             `organizer_id` bigint NOT NULL COMMENT '组织者用户ID',
                             `max_participants` int DEFAULT '0' COMMENT '最大参与人数，0表示不限制',
                             `current_participants` int DEFAULT '0' COMMENT '当前参与人数',
-                            `status` int DEFAULT '0' COMMENT '状态：0-待发布, 1-进行中, 2-已结束, 3-已取消',
+                            `status` int DEFAULT '0' COMMENT '状态：0-待发布,1-进行中,2-已结束,3-已取消；发布后为1，应用层在 end_time 过后批量置为2（与定时任务一致）',
                             `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                             `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`id`),

@@ -1,12 +1,11 @@
 package com.run.runsocialplatform.common.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.run.runsocialplatform.common.jackson.FlexibleLocalDateTimeDeserializer;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Configuration
@@ -38,12 +37,8 @@ public class GlobalConfig {
                     )
             );
 
-            // 配置Java 8日期时间反序列化
-            builder.deserializers(
-                    new com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer(
-                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                    )
-            );
+            // 反序列化：兼容 ISO-8601（含 Z）与 yyyy-MM-dd HH:mm:ss（须显式按类型注册，避免泛型擦除导致 Unknown handled type）
+            builder.deserializerByType(LocalDateTime.class, new FlexibleLocalDateTimeDeserializer());
             builder.deserializers(
                     new com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer(
                             DateTimeFormatter.ofPattern("yyyy-MM-dd")

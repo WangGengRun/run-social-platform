@@ -21,6 +21,8 @@ import com.run.runsocialplatform.security.utils.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +37,11 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
 
     private final ActivityParticipationMapper participationMapper;
     private final UserService userService;
+
+    /** 自注入代理，确保 {@link #autoFinishExpired} 的 @Transactional 在类内调用时生效 */
+    @Lazy
+    @Autowired
+    private ActivityService activityServiceSelf;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -110,6 +117,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
 
     @Override
     public ActivityDetailVO detail(Long activityId) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
         Activity activity = getById(activityId);
         if (activity == null || activity.getState() == 3) {
             throw new BusinessException(ResultCode.DATA_NOT_EXIST, "活动不存在");
@@ -135,6 +143,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
 
     @Override
     public Page<ActivityListVO> listActivities(Integer pageNum, Integer pageSize, Integer status, String keyword) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
         Page<Activity> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
         if (status != null) {
@@ -170,6 +179,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
 
     @Override
     public Page<ActivityListVO> listMyOrganized(Integer pageNum, Integer pageSize) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
         Long currentUserId = SecurityUtil.getCurrentUserId();
         Page<Activity> page = page(new Page<>(pageNum, pageSize),
                 new LambdaQueryWrapper<Activity>()
@@ -219,6 +229,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void signup(Long activityId) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
         Activity activity = getById(activityId);
         if (activity == null || activity.getState() == 3) {
             throw new BusinessException(ResultCode.DATA_NOT_EXIST, "活动不存在");
@@ -240,6 +251,14 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
         if (activity.getMaxParticipants() != null && activity.getMaxParticipants() > 0
                 && activity.getCurrentParticipants() >= activity.getMaxParticipants()) {
             throw new BusinessException(ResultCode.OPERATION_FAILED, "名额已满");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(activity.getEndTime())) {
+            throw new BusinessException(ResultCode.OPERATION_FAILED, "活动已结束，无法报名");
+        }
+        if (!now.isBefore(activity.getStartTime())) {
+            throw new BusinessException(ResultCode.OPERATION_FAILED, "活动已开始，无法报名");
         }
 
         if (exist == null) {
@@ -283,6 +302,19 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void checkIn(Long activityId) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
+        Activity activity = getById(activityId);
+        if (activity == null || activity.getState() == 3) {
+            throw new BusinessException(ResultCode.DATA_NOT_EXIST, "活动不存在");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(activity.getStartTime())) {
+            throw new BusinessException(ResultCode.OPERATION_FAILED, "活动尚未开始，无法签到");
+        }
+        if (now.isAfter(activity.getEndTime())) {
+            throw new BusinessException(ResultCode.OPERATION_FAILED, "活动已结束，无法签到");
+        }
+
         Long currentUserId = SecurityUtil.getCurrentUserId();
         ActivityParticipation participation = participationMapper.selectOne(new LambdaQueryWrapper<ActivityParticipation>()
                 .eq(ActivityParticipation::getActivityId, activityId)

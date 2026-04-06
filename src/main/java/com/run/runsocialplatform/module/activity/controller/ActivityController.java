@@ -1,8 +1,11 @@
 package com.run.runsocialplatform.module.activity.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.run.runsocialplatform.common.constant.ResultCode;
+import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.common.page.PageResult;
 import com.run.runsocialplatform.common.result.Result;
+import com.run.runsocialplatform.common.utils.MinioUtil;
 import com.run.runsocialplatform.module.activity.model.dto.ActivityCreateDTO;
 import com.run.runsocialplatform.module.activity.model.dto.ActivityUpdateDTO;
 import com.run.runsocialplatform.module.activity.model.vo.ActivityDetailVO;
@@ -15,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/activity")
@@ -23,6 +27,28 @@ import org.springframework.web.bind.annotation.*;
 public class ActivityController {
 
     private final ActivityService activityService;
+    private final MinioUtil minioUtil;
+
+    @PostMapping("/cover/upload")
+    @Operation(summary = "上传活动封面（MinIO，返回 objectName 写入 coverImage）")
+    @PreAuthorize("hasAuthority('ALUMNI')")
+    public Result<String> uploadCover(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "上传文件不能为空");
+        }
+        long maxSize = 5L * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "文件大小不能超过5MB");
+        }
+        try {
+            String objectName = minioUtil.uploadActivityCover(file);
+            return Result.success(objectName);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "上传失败：" + e.getMessage());
+        }
+    }
 
     @PostMapping
     @Operation(summary = "创建活动（状态：待发布）")

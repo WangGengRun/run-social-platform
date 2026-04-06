@@ -12,6 +12,7 @@ import com.run.runsocialplatform.module.activity.mapper.ActivityMapper;
 import com.run.runsocialplatform.module.activity.mapper.ActivityParticipationMapper;
 import com.run.runsocialplatform.module.activity.model.entity.Activity;
 import com.run.runsocialplatform.module.activity.model.entity.ActivityParticipation;
+import com.run.runsocialplatform.module.activity.service.ActivityService;
 import com.run.runsocialplatform.module.alumni.mapper.AlumniProfileMapper;
 import com.run.runsocialplatform.module.alumni.model.entity.AlumniInfo;
 import com.run.runsocialplatform.module.auth.mapper.UserMapper;
@@ -40,6 +41,7 @@ public class AdminServiceImpl implements AdminService {
     private final PostInteractionMapper postInteractionMapper;
     private final ActivityMapper activityMapper;
     private final ActivityParticipationMapper activityParticipationMapper;
+    private final ActivityService activityService;
 
     // 用户管理
     @Override
@@ -329,6 +331,7 @@ public class AdminServiceImpl implements AdminService {
     // 活动管理
     @Override
     public IPage<ActivityManageVO> getActivityList(Integer pageNum, Integer pageSize, Integer status, String keyword) {
+        activityService.autoFinishExpired(LocalDateTime.now());
         Page<Activity> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
 
@@ -393,6 +396,7 @@ public class AdminServiceImpl implements AdminService {
     // 数据统计
     @Override
     public DashboardVO getDashboardData() {
+        activityService.autoFinishExpired(LocalDateTime.now());
         DashboardVO dashboardVO = new DashboardVO();
 
         // 统计用户数据
@@ -458,6 +462,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Map<String, Object> getActivityStatistics() {
+        activityService.autoFinishExpired(LocalDateTime.now());
         Map<String, Object> statistics = new HashMap<>();
 
         // 总活动数
