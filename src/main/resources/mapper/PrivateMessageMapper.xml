@@ -105,7 +105,8 @@
             (pm.sender_id = #{userId} AND pm.receiver_id = #{otherUserId})
             OR (pm.sender_id = #{otherUserId} AND pm.receiver_id = #{userId})
           )
-        ORDER BY pm.created_at ASC
+        <!-- 倒序分页：第 1 页为最新一批，前端反转为时间正序展示，打开会话即可滚到底部看到最新消息 -->
+        ORDER BY pm.created_at DESC
     </select>
 
     <!-- 统计未读消息总数 -->

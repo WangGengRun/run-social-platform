@@ -19,13 +19,12 @@
       </el-button>
     </div>
 
-    <AlumniOnlyBlur :locked="isUserNonAlumni">
+    <AlumniOnlyBlur class="message-detail-blur" :locked="isUserNonAlumni">
+    <div class="message-detail-chat-slot">
     <div
       class="messages-list"
       ref="messagesListRef"
-      v-infinite-scroll="loadMore"
-      :infinite-scroll-disabled="loading || !hasMore || isUserNonAlumni"
-      :infinite-scroll-distance="10"
+      @scroll.passive="onMessagesScroll"
     >
       <div v-if="loading && messages.length === 0" class="loading-container">
         <el-icon class="is-loading"><Loading /></el-icon>
@@ -49,6 +48,8 @@
           :show-status="message.isSelf"
           @retry="retryMessage(message)"
         />
+        <!-- 锚点：scrollIntoView 比仅设 scrollTop 更可靠（flex/过渡后仍能对齐到底） -->
+        <div ref="messagesEndRef" class="messages-end-anchor" aria-hidden="true" />
       </div>
 
       <div v-if="loading && messages.length > 0" class="loading-more">
@@ -81,6 +82,7 @@
       >
         发送
       </el-button>
+    </div>
     </div>
     </AlumniOnlyBlur>
     </div>
@@ -122,6 +124,7 @@ const hasMore = ref(true)
 const pageNum = ref(1)
 const pageSize = ref(20)
 const messagesListRef = ref(null)
+const messagesEndRef = ref(null)
 const sending = ref(false)
 const showNewMessageTip = ref(false)
 const currentUserId = ref(route.query.userId)
@@ -146,9 +149,19 @@ const handleShiftEnter = (e) => {
   })
 }
 
-const loadMore = async () => {
-  if (loading.value || !hasMore.value) return
-  await fetchMessages(false)
+const loadOlderMessages = () => {
+  if (loading.value || !hasMore.value || isUserNonAlumni.value) return
+  fetchMessages(false)
+}
+
+const onMessagesScroll = (e) => {
+  const el = e.target
+  if (!el || loading.value || !hasMore.value || isUserNonAlumni.value) return
+  // 内容不足以产生滚动条时 scrollTop 恒为 0，避免反复触顶加载
+  if (el.scrollHeight <= el.clientHeight + 2) return
+  if (el.scrollTop < 80) {
+    loadOlderMessages()
+  }
 }
 
 const fetchMessages = async (refresh = false) => {
@@ -160,14 +173,18 @@ const fetchMessages = async (refresh = false) => {
     hasMore.value = true
   }
 
+  const listEl = messagesListRef.value
+  const prevScrollHeight = listEl?.scrollHeight ?? 0
+
   loading.value = true
+  let scrollToBottomAfter = false
 
   try {
     const userId = currentUserId.value
     const response = await messageApi.getMessages(userId, pageNum.value, pageSize.value)
 
     if (response.code === 200) {
-      const { list, total, pageNum: currentPage, pageSize: currentSize } = response.data
+      const { list, total, pageNum: currentPage } = response.data
 
       const formattedMessages = list.map(msg => ({
         ...msg,
@@ -176,19 +193,23 @@ const fetchMessages = async (refresh = false) => {
         status: 'sent'
       }))
 
+      // 后端按时间倒序分页：第 1 页为最新一批；展示为时间正序（旧在上、新在下）
+      const chronologicalBatch = [...formattedMessages].reverse()
+
       if (refresh) {
-        messages.value = formattedMessages
+        messages.value = chronologicalBatch
+        scrollToBottomAfter = true
       } else {
-        messages.value = [...messages.value, ...formattedMessages]
+        messages.value = [...chronologicalBatch, ...messages.value]
+        await nextTick()
+        if (listEl && messagesListRef.value) {
+          const newScrollHeight = messagesListRef.value.scrollHeight
+          messagesListRef.value.scrollTop += newScrollHeight - prevScrollHeight
+        }
       }
 
       pageNum.value = currentPage + 1
       hasMore.value = messages.value.length < total
-
-      if (refresh) {
-        await nextTick()
-        scrollToBottom()
-      }
 
       if (formattedMessages.length > 0 && (!userInfo.value.realName && !userInfo.value.username)) {
         let targetMessage = formattedMessages.find(msg => !msg.isSelf)
@@ -211,7 +232,7 @@ const fetchMessages = async (refresh = false) => {
             avatar: targetMessage.senderAvatar
           }
         }
-        
+
         if (userInfo.value.avatar) {
           avatarUrl.value = await resolveAvatarUrl(userInfo.value.avatar)
         }
@@ -222,6 +243,9 @@ const fetchMessages = async (refresh = false) => {
     ElMessage.error('获取消息列表失败，请重试')
   } finally {
     loading.value = false
+    if (scrollToBottomAfter) {
+      await scrollToBottomStable()
+    }
   }
 }
 
@@ -397,10 +421,32 @@ const handleMessageAck = (data) => {
 }
 
 const scrollToBottom = () => {
-  if (messagesListRef.value) {
-    messagesListRef.value.scrollTop = messagesListRef.value.scrollHeight
-    showNewMessageTip.value = false
+  const el = messagesListRef.value
+  const anchor = messagesEndRef.value
+  if (anchor) {
+    try {
+      anchor.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'auto' })
+    } catch {
+      /* ignore */
+    }
   }
+  if (el) {
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight)
+    el.scrollTop = maxTop
+  }
+  showNewMessageTip.value = false
+}
+
+/** 等布局、路由过渡、图片加载后再对齐到底部 */
+const scrollToBottomStable = async () => {
+  await nextTick()
+  const run = () => scrollToBottom()
+  run()
+  requestAnimationFrame(() => {
+    run()
+    requestAnimationFrame(run)
+  })
+  ;[0, 50, 120, 280, 450, 700].forEach((ms) => setTimeout(run, ms))
 }
 
 const checkIfAtBottom = () => {
@@ -414,12 +460,9 @@ const markAsRead = async () => {
     const userId = currentUserId.value
     await messageApi.markAsRead(userId)
 
-    messages.value = messages.value.map(msg => {
-      if (!msg.isSelf) {
-        return { ...msg, isRead: true }
-      }
-      return msg
-    })
+    for (const msg of messages.value) {
+      if (!msg.isSelf) msg.isRead = true
+    }
 
     websocketManager.sendReadReceipt(userId)
 
@@ -444,21 +487,22 @@ const handleRouteChange = async (newUserId) => {
 
   await fetchMessages(true)
   await markAsRead()
+  await scrollToBottomStable()
 }
 
-watch(() => route.query.userId, (newUserId) => {
-  if (newUserId && newUserId !== currentUserId.value) {
+watch(
+  () => route.query.userId,
+  (newUserId) => {
+    if (!newUserId) return
+    if (String(newUserId) === String(currentUserId.value)) return
     handleRouteChange(newUserId)
   }
-})
+)
 
 onMounted(async () => {
   await fetchMessages(true)
   await markAsRead()
-  
-  nextTick(() => {
-    scrollToBottom()
-  })
+  await scrollToBottomStable()
 
   websocketManager.on('message', handleNewMessage)
   websocketManager.on('read', handleReadReceipt)
@@ -483,6 +527,7 @@ onUnmounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .message-detail-container {
@@ -496,6 +541,30 @@ onUnmounted(() => {
   width: 100%;
   position: relative;
   background: transparent;
+}
+
+/* 让消息区在固定高度内滚动：否则列表被内容撑满整页，scrollTop 恒为 0，会停在“最上面” */
+.message-detail-blur {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-detail-blur :deep(.alumni-blur-body) {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.message-detail-chat-slot {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .message-header {
@@ -543,11 +612,16 @@ onUnmounted(() => {
 }
 
 .messages-list {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: auto;
   padding: 20px;
   display: flex;
   flex-direction: column;
+  /* 双保险：即使外层 flex 未算对高度，也强制在视口内产生内部滚动，避免整页滚动且 scrollTop 恒为 0 */
+  max-height: calc(100vh - var(--shell-h) - 200px);
 }
 
 .loading-container {
@@ -572,6 +646,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.messages-end-anchor {
+  width: 100%;
+  height: 1px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .loading-more {
@@ -602,6 +683,7 @@ onUnmounted(() => {
 }
 
 .message-input-container {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-end;
   gap: 12px;
