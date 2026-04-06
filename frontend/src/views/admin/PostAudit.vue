@@ -18,9 +18,8 @@
           <el-col :span="8">
             <el-form-item label="状态">
               <el-select v-model="queryForm.status" placeholder="请选择状态">
-                <el-option label="待审核" value="pending"></el-option>
-                <el-option label="通过" value="approved"></el-option>
-                <el-option label="拒绝" value="rejected"></el-option>
+                <el-option label="正常" :value="1"></el-option>
+                <el-option label="已删除" :value="0"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -65,8 +64,22 @@
         <el-table-column label="操作" width="200">
           <template #default="scope">
             <el-button type="primary" size="small" @click="viewPostDetail(scope.row)">查看详情</el-button>
-            <el-button type="success" size="small" @click="openAuditDialog(scope.row, 'approved')" v-if="scope.row.status === 'pending'">通过</el-button>
-            <el-button type="danger" size="small" @click="openAuditDialog(scope.row, 'rejected')" v-if="scope.row.status === 'pending'">拒绝</el-button>
+            <el-button
+              v-if="scope.row.status === 1"
+              type="danger"
+              size="small"
+              @click="openAuditDialog(scope.row, 0)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 0"
+              type="success"
+              size="small"
+              @click="openAuditDialog(scope.row, 1)"
+            >
+              恢复
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -87,7 +100,7 @@
       <!-- 审核对话框 -->
       <el-dialog
         v-model="auditDialogVisible"
-        title="审核动态"
+        title="变更动态状态"
         width="600px"
       >
         <div v-if="currentPost" class="audit-dialog-content">
@@ -109,19 +122,11 @@
             </div>
           </div>
           <el-form :model="auditForm" style="margin-top: 20px;">
-            <el-form-item label="审核结果">
+            <el-form-item label="新状态">
               <el-radio-group v-model="auditForm.status">
-                <el-radio label="approved">通过</el-radio>
-                <el-radio label="rejected">拒绝</el-radio>
+                <el-radio :label="1">正常</el-radio>
+                <el-radio :label="0">已删除</el-radio>
               </el-radio-group>
-            </el-form-item>
-            <el-form-item label="拒绝原因" v-if="auditForm.status === 'rejected'">
-              <el-input
-                v-model="auditForm.reason"
-                type="textarea"
-                rows="3"
-                placeholder="请输入拒绝原因"
-              ></el-input>
             </el-form-item>
           </el-form>
         </div>
@@ -144,7 +149,7 @@ import adminApi from '../../api/admin'
 // 查询表单
 const queryForm = reactive({
   keyword: '',
-  status: ''
+  status: undefined
 })
 
 // 分页参数
@@ -159,7 +164,7 @@ const postList = ref([])
 const auditDialogVisible = ref(false)
 const currentPost = ref(null)
 const auditForm = reactive({
-  status: 'approved',
+  status: 1,
   reason: ''
 })
 
@@ -172,57 +177,18 @@ const getPostList = async () => {
       queryForm.status,
       queryForm.keyword
     )
-    postList.value = response.records
-    total.value = response.total
+    postList.value = response.data?.records || []
+    total.value = response.data?.total || 0
   } catch (error) {
     console.error('获取动态列表失败:', error)
-    // 模拟数据
-    postList.value = [
-      {
-        id: 1,
-        userId: 1,
-        username: 'user1',
-        content: '昨天的校友聚会很开心，见到了很多老朋友',
-        imageUrls: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg'],
-        visibility: 'public',
-        likeCount: 10,
-        commentCount: 5,
-        status: 'pending',
-        createdAt: '2026-01-28 10:00:00'
-      },
-      {
-        id: 2,
-        userId: 2,
-        username: 'user2',
-        content: '我司正在招聘前端工程师，有意向的校友可以联系我',
-        imageUrls: [],
-        visibility: 'alumni',
-        likeCount: 20,
-        commentCount: 10,
-        status: 'approved',
-        createdAt: '2026-01-27 15:30:00'
-      },
-      {
-        id: 3,
-        userId: 3,
-        username: 'user3',
-        content: '分享一本书，推荐给大家',
-        imageUrls: ['https://example.com/image3.jpg'],
-        visibility: 'private',
-        likeCount: 15,
-        commentCount: 8,
-        status: 'rejected',
-        createdAt: '2026-01-26 09:00:00'
-      }
-    ]
-    total.value = 3
+    ElMessage.error('获取动态列表失败，请重试')
   }
 }
 
 // 重置表单
 const resetForm = () => {
   queryForm.keyword = ''
-  queryForm.status = ''
+  queryForm.status = undefined
   getPostList()
 }
 
@@ -240,30 +206,12 @@ const handleCurrentChange = (current) => {
 
 // 获取状态标签类型
 const getStatusTagType = (status) => {
-  switch (status) {
-    case 'pending':
-      return 'warning'
-    case 'approved':
-      return 'success'
-    case 'rejected':
-      return 'danger'
-    default:
-      return ''
-  }
+  return status === 1 ? 'success' : 'info'
 }
 
 // 获取状态文本
 const getStatusText = (status) => {
-  switch (status) {
-    case 'pending':
-      return '待审核'
-    case 'approved':
-      return '通过'
-    case 'rejected':
-      return '拒绝'
-    default:
-      return status
-  }
+  return status === 1 ? '正常' : '已删除'
 }
 
 // 获取可见性标签类型
@@ -316,20 +264,15 @@ const submitAudit = async () => {
     ElMessage.warning('请选择要审核的动态')
     return
   }
-  
-  if (auditForm.status === 'rejected' && !auditForm.reason) {
-    ElMessage.warning('请输入拒绝原因')
-    return
-  }
-  
+
   try {
-    await adminApi.auditPost(currentPost.value.id, auditForm.status, auditForm.reason)
-    ElMessage.success('审核成功')
+    await adminApi.auditPost(currentPost.value.id, auditForm.status, '')
+    ElMessage.success('操作成功')
     auditDialogVisible.value = false
     getPostList()
   } catch (error) {
     console.error('审核失败:', error)
-    ElMessage.error('审核失败')
+    ElMessage.error('操作失败')
   }
 }
 

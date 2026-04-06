@@ -10,32 +10,32 @@
       <!-- 查询表单 -->
       <el-form :model="queryForm" class="query-form" label-width="80px">
         <el-row :gutter="20">
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="用户名">
               <el-input v-model="queryForm.username" placeholder="请输入用户名"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="邮箱">
               <el-input v-model="queryForm.email" placeholder="请输入邮箱"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="手机号">
               <el-input v-model="queryForm.phone" placeholder="请输入手机号"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="真实姓名">
               <el-input v-model="queryForm.realName" placeholder="请输入真实姓名"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="学号">
               <el-input v-model="queryForm.studentId" placeholder="请输入学号"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="角色">
               <el-select v-model="queryForm.role" placeholder="请选择角色">
                 <el-option label="普通用户" value="USER"></el-option>
@@ -44,7 +44,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :xl="6" :lg="8" :md="12" :sm="24" :xs="24">
             <el-form-item label="状态">
               <el-select v-model="queryForm.status" placeholder="请选择状态">
                 <el-option label="正常" :value="1"></el-option>
@@ -52,9 +52,11 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
-            <el-button type="primary" @click="getUserList" style="margin-top: 24px;">查询</el-button>
-            <el-button @click="resetForm" style="margin-top: 24px;">重置</el-button>
+          <el-col :span="24">
+            <div class="query-actions">
+              <el-button type="primary" @click="getUserList">查询</el-button>
+              <el-button @click="resetForm">重置</el-button>
+            </div>
           </el-col>
         </el-row>
       </el-form>
@@ -64,7 +66,7 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="scope">
-            <el-avatar :size="40" :src="scope.row.avatar || ''">
+            <el-avatar :size="40" :src="scope.row.avatarUrl || scope.row.avatar || ''">
               {{ scope.row.username.charAt(0).toUpperCase() }}
             </el-avatar>
           </template>
@@ -87,36 +89,22 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="verifyStatus" label="校友认证" width="110">
-          <template #default="scope">
-            <el-tag :type="getVerifyTagType(scope.row.verifyStatus)">
-              {{ getVerifyText(scope.row.verifyStatus) }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="createdAt" label="注册时间" width="180" sortable />
         <el-table-column prop="lastLoginTime" label="最后登录" width="180" />
-        <el-table-column label="操作" width="360">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="viewUserDetail(scope.row.id)">查看详情</el-button>
-            <el-button type="success" size="small" @click="openStatusDialog(scope.row)">修改状态</el-button>
-            <el-button type="warning" size="small" @click="openRoleDialog(scope.row)">修改角色</el-button>
-            <el-button
-              v-if="scope.row.verifyStatus === 0"
-              type="success"
-              size="small"
-              @click="quickAudit(scope.row, 1)"
-            >
-              认证通过
-            </el-button>
-            <el-button
-              v-if="scope.row.verifyStatus === 0"
-              type="danger"
-              size="small"
-              @click="quickAudit(scope.row, 2)"
-            >
-              驳回
-            </el-button>
+            <div class="action-cell">
+              <el-button type="primary" size="small" @click="viewUserDetail(scope.row.id)">查看详情</el-button>
+              <el-dropdown trigger="click">
+                <el-button size="small">更多</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="openStatusDialog(scope.row)">修改状态</el-dropdown-item>
+                    <el-dropdown-item @click="openRoleDialog(scope.row)">修改角色</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -148,7 +136,7 @@
             <el-descriptions-item label="邮箱">{{ userDetail.email }}</el-descriptions-item>
             <el-descriptions-item label="手机号">{{ userDetail.phone || '未设置' }}</el-descriptions-item>
             <el-descriptions-item label="头像">
-              <el-avatar :size="60" :src="userDetail.avatar || ''">
+              <el-avatar :size="60" :src="userDetail.avatarUrl || userDetail.avatar || ''">
                 {{ userDetail.username.charAt(0).toUpperCase() }}
               </el-avatar>
             </el-descriptions-item>
@@ -180,10 +168,6 @@
           </el-descriptions>
           <div v-else class="no-alumni-info">
             暂无校友信息
-          </div>
-          <div v-if="userDetail.alumniInfo && userDetail.alumniInfo.verifyStatus === 0" style="margin-top: 12px;">
-            <el-button type="success" @click="quickAudit(userDetail, 1)">认证通过</el-button>
-            <el-button type="danger" @click="quickAudit(userDetail, 2)">驳回</el-button>
           </div>
         </div>
       </el-drawer>
@@ -240,6 +224,7 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import adminApi from '../../api/admin'
+import { resolveAvatarUrl } from '../../utils/avatarUrl'
 
 // 查询表单
 const queryForm = reactive({
@@ -277,7 +262,13 @@ const newRole = ref('')
 const getUserList = async () => {
   try {
     const response = await adminApi.getUserList(pageNum.value, pageSize.value, queryForm)
-    userList.value = response.data?.records || []
+    const raw = response.data?.records || []
+    userList.value = await Promise.all(
+      raw.map(async (u) => ({
+        ...u,
+        avatarUrl: u.avatar ? await resolveAvatarUrl(u.avatar) : ''
+      }))
+    )
     total.value = response.data?.total || 0
   } catch (error) {
     console.error('获取用户列表失败:', error)
@@ -432,41 +423,6 @@ const confirmUpdateStatus = async () => {
   }
 }
 
-const quickAudit = async (row, verifyStatus) => {
-  const userId = row.id
-  try {
-    let verifyNotes = ''
-    if (verifyStatus === 2) {
-      const promptResult = await ElMessageBox.prompt('请输入驳回原因', '驳回认证', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputType: 'textarea',
-        inputPlaceholder: '例如：学号与姓名不匹配',
-        inputValidator: (value) => !!String(value || '').trim() || '驳回原因不能为空'
-      })
-      verifyNotes = promptResult.value
-    } else {
-      await ElMessageBox.confirm('确认通过该用户的校友认证吗？', '认证审核', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-    }
-
-    await adminApi.auditAlumniVerify(userId, verifyStatus, verifyNotes)
-    ElMessage.success(verifyStatus === 1 ? '已通过认证' : '已驳回认证')
-    if (userDetail.value?.id === userId) {
-      await viewUserDetail(userId)
-    }
-    await getUserList()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('审核认证失败:', error)
-      ElMessage.error('审核认证失败')
-    }
-  }
-}
-
 // 打开修改角色对话框
 const openRoleDialog = (user) => {
   currentUser.value = user
@@ -526,6 +482,19 @@ getUserList()
   border-radius: 8px;
 }
 
+.query-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.action-cell {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -549,5 +518,11 @@ getUserList()
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+@media (max-width: 1200px) {
+  .query-actions {
+    justify-content: flex-start;
+  }
 }
 </style>

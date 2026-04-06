@@ -271,6 +271,7 @@ const initUserRoleChart = (data) => {
       radius: '50%',
       data: [
         { value: data.ADMIN || 0, name: '管理员' },
+        { value: data.ALUMNI || 0, name: '校友' },
         { value: data.USER || 0, name: '普通用户' }
       ],
       emphasis: {

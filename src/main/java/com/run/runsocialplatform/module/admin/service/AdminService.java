@@ -20,8 +20,6 @@ public interface AdminService {
     // 内容审核
     IPage<PostAuditVO> getPostList(Integer pageNum, Integer pageSize, Integer status, String keyword);
     void auditPost(Long postId, Integer status, String reason);
-    IPage<CommentAuditVO> getCommentList(Integer pageNum, Integer pageSize, Integer status, String keyword);
-    void auditComment(Long commentId, Integer status, String reason);
 
     // 活动管理
     IPage<ActivityManageVO> getActivityList(Integer pageNum, Integer pageSize, Integer status, String keyword);

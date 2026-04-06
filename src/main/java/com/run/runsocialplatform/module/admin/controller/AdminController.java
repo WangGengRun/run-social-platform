@@ -111,29 +111,6 @@ public class AdminController {
         return Result.success();
     }
 
-    @GetMapping("/comments")
-    @Operation(summary = "获取评论列表")
-    public Result<IPage<CommentAuditVO>> getCommentList(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword) {
-        log.info("查询评论列表：pageNum={}, pageSize={}, status={}, keyword={}", pageNum, pageSize, status, keyword);
-        IPage<CommentAuditVO> commentList = adminService.getCommentList(pageNum, pageSize, status, keyword);
-        return Result.success(commentList);
-    }
-
-    @PostMapping("/comments/{commentId}/audit")
-    @Operation(summary = "审核评论")
-    public Result<Void> auditComment(
-            @PathVariable Long commentId,
-            @RequestParam Integer status,
-            @RequestParam(required = false) String reason) {
-        log.info("审核评论：commentId={}, status={}, reason={}", commentId, status, reason);
-        adminService.auditComment(commentId, status, reason);
-        return Result.success();
-    }
-
     // 活动管理
     @GetMapping("/activities")
     @Operation(summary = "获取活动列表")

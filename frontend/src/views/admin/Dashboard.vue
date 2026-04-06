@@ -1,5 +1,6 @@
 <template>
   <div class="dashboard">
+    <el-skeleton :rows="8" animated v-if="loading" />
     <el-card class="dashboard-card">
       <template #header>
         <div class="card-header">
@@ -98,30 +99,7 @@
       </el-row>
       
       <!-- 第四行：评论数据 -->
-      <el-row :gutter="20" class="stat-row">
-        <el-col :span="12">
-          <el-card class="stat-card" @click="navigateTo('/admin/comments')">
-            <div class="stat-content">
-              <el-icon class="stat-icon"><ChatDotRound /></el-icon>
-              <div class="stat-info">
-                <p class="stat-label">总评论数</p>
-                <p class="stat-value">{{ dashboardData.totalComments || 0 }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card class="stat-card" @click="navigateTo('/admin/comments?status=pending')">
-            <div class="stat-content">
-              <el-icon class="stat-icon"><Warning /></el-icon>
-              <div class="stat-info">
-                <p class="stat-label">待审核评论数</p>
-                <p class="stat-value">{{ dashboardData.pendingAuditComments || 0 }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+      <!-- 评论审核功能已移除 -->
       
       <!-- 第五行：互动数据 -->
       <el-row :gutter="20" class="stat-row">
@@ -136,17 +114,6 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :span="12">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <el-icon class="stat-icon"><Star /></el-icon>
-              <div class="stat-info">
-                <p class="stat-label">总关注数</p>
-                <p class="stat-value">{{ dashboardData.totalFollows || 0 }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
       </el-row>
     </el-card>
   </div>
@@ -155,13 +122,15 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, UserFilled, Timer, Document, ChatLineSquare, Calendar, Clock, ChatDotRound, Warning, Connection, Star } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { User, UserFilled, Timer, Document, ChatLineSquare, Calendar, Clock, Connection } from '@element-plus/icons-vue'
 import adminApi from '../../api/admin'
 
 const router = useRouter()
 
 // 仪表盘数据
 const dashboardData = ref({})
+const loading = ref(false)
 
 // 导航到指定页面
 const navigateTo = (path) => {
@@ -171,25 +140,14 @@ const navigateTo = (path) => {
 // 获取仪表盘数据
 const getDashboardData = async () => {
   try {
+    loading.value = true
     const response = await adminApi.getDashboardData()
-    // 接口返回格式：{ code, data: { ... } }
     dashboardData.value = response.data
   } catch (error) {
     console.error('获取仪表盘数据失败:', error)
-    // 模拟数据
-    dashboardData.value = {
-      totalUsers: 1200,
-      activeUsers: 850,
-      pendingVerifyUsers: 45,
-      totalPosts: 3500,
-      pendingAuditPosts: 23,
-      totalActivities: 150,
-      ongoingActivities: 45,
-      totalComments: 8200,
-      pendingAuditComments: 156,
-      totalInteractions: 25000,
-      totalFollows: 18000
-    }
+    ElMessage.error('获取仪表盘数据失败，请重试')
+  } finally {
+    loading.value = false
   }
 }
 

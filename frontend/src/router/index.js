@@ -126,14 +126,14 @@ const router = createRouter({
           component: () => import('../views/admin/PostAudit.vue')
         },
         {
-          path: 'comments',
-          name: 'CommentReview',
-          component: () => import('../views/admin/CommentAudit.vue')
-        },
-        {
           path: 'activities',
           name: 'ActivityManagement',
           component: () => import('../views/admin/ActivityManagement.vue')
+        },
+        {
+          path: 'statistics',
+          name: 'DataStatistics',
+          component: () => import('../views/admin/DataStatistics.vue')
         }
       ]
     },

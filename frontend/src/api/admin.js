@@ -160,26 +160,6 @@ const adminApi = {
     })
   },
   
-  getCommentList(pageNum, pageSize, status, keyword) {
-    return service.get('/api/admin/comments', {
-      params: {
-        pageNum,
-        pageSize,
-        status,
-        keyword
-      }
-    })
-  },
-  
-  auditComment(commentId, status, reason) {
-    return service.post(`/api/admin/comments/${commentId}/audit`, {}, {
-      params: {
-        status,
-        reason
-      }
-    })
-  },
-  
   // 活动管理
   getActivityList(pageNum, pageSize, status, keyword) {
     return service.get('/api/admin/activities', {

@@ -18,10 +18,10 @@
           <el-col :span="8">
             <el-form-item label="状态">
               <el-select v-model="queryForm.status" placeholder="请选择状态">
-                <el-option label="待发布" value="pending"></el-option>
-                <el-option label="进行中" value="ongoing"></el-option>
-                <el-option label="已结束" value="ended"></el-option>
-                <el-option label="已取消" value="canceled"></el-option>
+                <el-option label="待发布" :value="0"></el-option>
+                <el-option label="进行中" :value="1"></el-option>
+                <el-option label="已结束" :value="2"></el-option>
+                <el-option label="已取消" :value="3"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -39,9 +39,9 @@
           <template #default="scope">
             <el-image
               v-if="scope.row.coverImage"
-              :src="scope.row.coverImage"
+              :src="scope.row.coverUrl || scope.row.coverImage"
               fit="cover"
-              :preview-src-list="[scope.row.coverImage]"
+              :preview-src-list="[scope.row.coverUrl || scope.row.coverImage]"
               style="width: 80px; height: 60px;"
             />
             <div v-else class="no-cover">无封面</div>
@@ -101,10 +101,10 @@
           </el-form-item>
           <el-form-item label="新状态">
             <el-select v-model="newStatus" placeholder="请选择新状态">
-              <el-option label="待发布" value="pending"></el-option>
-              <el-option label="进行中" value="ongoing"></el-option>
-              <el-option label="已结束" value="ended"></el-option>
-              <el-option label="已取消" value="canceled"></el-option>
+              <el-option label="待发布" :value="0"></el-option>
+              <el-option label="进行中" :value="1"></el-option>
+              <el-option label="已结束" :value="2"></el-option>
+              <el-option label="已取消" :value="3"></el-option>
             </el-select>
           </el-form-item>
         </el-form>
@@ -123,10 +123,11 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import adminApi from '../../api/admin'
+import { resolveAvatarUrl } from '../../utils/avatarUrl'
 
 // 查询表单
 const queryForm = reactive({
-  status: '',
+  status: undefined,
   keyword: ''
 })
 
@@ -152,80 +153,23 @@ const getActivityList = async () => {
       queryForm.status,
       queryForm.keyword
     )
-    activityList.value = response.records
-    total.value = response.total
+    const raw = response.data?.records || []
+    activityList.value = await Promise.all(
+      raw.map(async (a) => ({
+        ...a,
+        coverUrl: a.coverImage ? await resolveAvatarUrl(a.coverImage) : ''
+      }))
+    )
+    total.value = response.data?.total || 0
   } catch (error) {
     console.error('获取活动列表失败:', error)
-    // 模拟数据
-    activityList.value = [
-      {
-        id: 1,
-        title: '校友聚会',
-        description: '欢迎各位校友参加年度聚会，共同交流分享',
-        coverImage: 'https://example.com/cover1.jpg',
-        location: '学校大礼堂',
-        startTime: '2026-01-28 14:00:00',
-        endTime: '2026-01-28 18:00:00',
-        organizerId: 1,
-        organizerName: '校友会',
-        maxParticipants: 100,
-        currentParticipants: 50,
-        status: 'ongoing',
-        createdAt: '2026-01-20 10:00:00'
-      },
-      {
-        id: 2,
-        title: '招聘会',
-        description: '多家企业现场招聘，提供大量就业机会',
-        coverImage: 'https://example.com/cover2.jpg',
-        location: '体育馆',
-        startTime: '2026-02-01 09:00:00',
-        endTime: '2026-02-01 17:00:00',
-        organizerId: 2,
-        organizerName: '就业办',
-        maxParticipants: 500,
-        currentParticipants: 120,
-        status: 'pending',
-        createdAt: '2026-01-25 15:00:00'
-      },
-      {
-        id: 3,
-        title: '学术讲座',
-        description: '知名学者分享前沿研究成果',
-        coverImage: 'https://example.com/cover3.jpg',
-        location: '学术报告厅',
-        startTime: '2026-01-20 10:00:00',
-        endTime: '2026-01-20 12:00:00',
-        organizerId: 3,
-        organizerName: '学术部',
-        maxParticipants: 200,
-        currentParticipants: 80,
-        status: 'ended',
-        createdAt: '2026-01-15 09:00:00'
-      },
-      {
-        id: 4,
-        title: '体育比赛',
-        description: '校际篮球比赛，欢迎大家前来观看',
-        coverImage: 'https://example.com/cover4.jpg',
-        location: '篮球场',
-        startTime: '2026-01-29 14:00:00',
-        endTime: '2026-01-29 16:00:00',
-        organizerId: 4,
-        organizerName: '体育部',
-        maxParticipants: 500,
-        currentParticipants: 0,
-        status: 'canceled',
-        createdAt: '2026-01-22 11:00:00'
-      }
-    ]
-    total.value = 4
+    ElMessage.error('获取活动列表失败，请重试')
   }
 }
 
 // 重置表单
 const resetForm = () => {
-  queryForm.status = ''
+  queryForm.status = undefined
   queryForm.keyword = ''
   getActivityList()
 }
@@ -295,33 +239,33 @@ const handleDeleteActivity = async (activityId) => {
 
 // 获取状态标签类型
 const getStatusTagType = (status) => {
-  switch (status) {
-    case 'pending':
-      return ''
-    case 'ongoing':
-      return 'success'
-    case 'ended':
+  switch (Number(status)) {
+    case 0:
       return 'info'
-    case 'canceled':
+    case 1:
+      return 'success'
+    case 2:
+      return 'default'
+    case 3:
       return 'danger'
     default:
-      return ''
+      return 'info'
   }
 }
 
 // 获取状态文本
 const getStatusText = (status) => {
-  switch (status) {
-    case 'pending':
+  switch (Number(status)) {
+    case 0:
       return '待发布'
-    case 'ongoing':
+    case 1:
       return '进行中'
-    case 'ended':
+    case 2:
       return '已结束'
-    case 'canceled':
+    case 3:
       return '已取消'
     default:
-      return status
+      return String(status)
   }
 }
 

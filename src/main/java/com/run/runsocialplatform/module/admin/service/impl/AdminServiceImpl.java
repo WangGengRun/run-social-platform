@@ -26,8 +26,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -50,20 +55,38 @@ public class AdminServiceImpl implements AdminService {
         LambdaQueryWrapper<UserEntity> wrapper = new LambdaQueryWrapper<>();
 
         if (queryDTO != null) {
-            if (queryDTO.getUsername() != null) {
+            if (queryDTO.getUsername() != null && !queryDTO.getUsername().isBlank()) {
                 wrapper.like(UserEntity::getUsername, queryDTO.getUsername());
             }
-            if (queryDTO.getEmail() != null) {
+            if (queryDTO.getEmail() != null && !queryDTO.getEmail().isBlank()) {
                 wrapper.like(UserEntity::getEmail, queryDTO.getEmail());
             }
-            if (queryDTO.getPhone() != null) {
+            if (queryDTO.getPhone() != null && !queryDTO.getPhone().isBlank()) {
                 wrapper.like(UserEntity::getPhone, queryDTO.getPhone());
             }
-            if (queryDTO.getRole() != null) {
+            if (queryDTO.getRole() != null && !queryDTO.getRole().isBlank()) {
                 wrapper.eq(UserEntity::getRole, queryDTO.getRole());
             }
             if (queryDTO.getStatus() != null) {
                 wrapper.eq(UserEntity::getStatus, queryDTO.getStatus());
+            }
+
+            // realName / studentId 在 alumni_info 表：作为筛选条件时，先反查符合条件的 userId 列表再过滤 user 表
+            boolean hasRealName = queryDTO.getRealName() != null && !queryDTO.getRealName().isBlank();
+            boolean hasStudentId = queryDTO.getStudentId() != null && !queryDTO.getStudentId().isBlank();
+            if (hasRealName || hasStudentId) {
+                LambdaQueryWrapper<AlumniInfo> alumniWrapper = new LambdaQueryWrapper<>();
+                if (hasRealName) alumniWrapper.like(AlumniInfo::getRealName, queryDTO.getRealName().trim());
+                if (hasStudentId) alumniWrapper.like(AlumniInfo::getStudentId, queryDTO.getStudentId().trim());
+                List<Long> userIds = alumniProfileMapper.selectList(alumniWrapper).stream()
+                        .map(AlumniInfo::getUserId)
+                        .distinct()
+                        .toList();
+                if (userIds.isEmpty()) {
+                    // 直接返回空分页
+                    return new Page<>(pageNum, pageSize, 0);
+                }
+                wrapper.in(UserEntity::getId, userIds);
             }
         }
 
@@ -281,53 +304,6 @@ public class AdminServiceImpl implements AdminService {
         log.info("审核动态：postId={}, status={}, reason={}", postId, status, reason);
     }
 
-    @Override
-    public IPage<CommentAuditVO> getCommentList(Integer pageNum, Integer pageSize, Integer status, String keyword) {
-        Page<PostInteraction> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<PostInteraction> wrapper = new LambdaQueryWrapper<>();
-
-        wrapper.eq(PostInteraction::getType, 2); // 2表示评论
-        if (status != null) {
-            wrapper.eq(PostInteraction::getStatus, status);
-        }
-        if (keyword != null) {
-            wrapper.like(PostInteraction::getContent, keyword);
-        }
-
-        wrapper.orderByDesc(PostInteraction::getCreatedAt);
-        Page<PostInteraction> commentPage = postInteractionMapper.selectPage(page, wrapper);
-
-        return commentPage.convert(comment -> {
-            CommentAuditVO vo = new CommentAuditVO();
-            vo.setId(comment.getId());
-            vo.setPostId(comment.getPostId());
-            vo.setUserId(comment.getUserId());
-            
-            // 查询用户信息
-            UserEntity user = userMapper.selectById(comment.getUserId());
-            if (user != null) {
-                vo.setUsername(user.getUsername());
-            }
-            
-            vo.setContent(comment.getContent());
-            vo.setParentId(comment.getParentId());
-            vo.setStatus(comment.getStatus());
-            vo.setCreatedAt(comment.getCreatedAt());
-            vo.setUpdatedAt(comment.getUpdatedAt());
-            return vo;
-        });
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void auditComment(Long commentId, Integer status, String reason) {
-        PostInteraction comment = new PostInteraction();
-        comment.setId(commentId);
-        comment.setStatus(status);
-        postInteractionMapper.updateById(comment);
-        log.info("审核评论：commentId={}, status={}, reason={}", commentId, status, reason);
-    }
-
     // 活动管理
     @Override
     public IPage<ActivityManageVO> getActivityList(Integer pageNum, Integer pageSize, Integer status, String keyword) {
@@ -457,6 +433,39 @@ public class AdminServiceImpl implements AdminService {
         statistics.put("todayNewUsers", userMapper.selectCount(new LambdaQueryWrapper<UserEntity>()
                 .ge(UserEntity::getCreatedAt, today)));
 
+        // 数据统计页：用户增长趋势（最近7天）
+        LocalDateTime sevenDaysAgo = LocalDate.now().minusDays(6).atStartOfDay();
+        List<UserEntity> recentUsers = userMapper.selectList(new LambdaQueryWrapper<UserEntity>()
+                .ge(UserEntity::getCreatedAt, sevenDaysAgo));
+        Map<String, Long> growthCounter = initDateCounter();
+        for (UserEntity u : recentUsers) {
+            if (u.getCreatedAt() == null) continue;
+            String key = u.getCreatedAt().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+            growthCounter.put(key, growthCounter.getOrDefault(key, 0L) + 1L);
+        }
+        List<Map<String, Object>> growthTrend = new ArrayList<>();
+        growthCounter.forEach((k, v) -> {
+            Map<String, Object> point = new HashMap<>();
+            point.put("date", k.substring(5));
+            point.put("count", v);
+            growthTrend.add(point);
+        });
+        statistics.put("growthTrend", growthTrend);
+
+        // 数据统计页：角色分布
+        Map<String, Object> roleDistribution = new HashMap<>();
+        roleDistribution.put("ADMIN", statistics.get("adminCount"));
+        roleDistribution.put("ALUMNI", statistics.get("alumniCount"));
+        roleDistribution.put("USER", userMapper.selectCount(new LambdaQueryWrapper<UserEntity>()
+                .eq(UserEntity::getRole, "USER")));
+        statistics.put("roleDistribution", roleDistribution);
+
+        // 数据统计页：活跃度（沿用账户可用状态）
+        Map<String, Object> activity = new HashMap<>();
+        activity.put("active", statistics.get("activeUsers"));
+        activity.put("inactive", statistics.get("disabledUsers"));
+        statistics.put("activity", activity);
+
         return statistics;
     }
 
@@ -483,6 +492,47 @@ public class AdminServiceImpl implements AdminService {
         statistics.put("todayNewActivities", activityMapper.selectCount(new LambdaQueryWrapper<Activity>()
                 .ge(Activity::getCreatedAt, today)));
 
+        // 数据统计页：活动增长趋势（最近7天）
+        LocalDateTime sevenDaysAgo = LocalDate.now().minusDays(6).atStartOfDay();
+        List<Activity> recentActivities = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
+                .ge(Activity::getCreatedAt, sevenDaysAgo));
+        Map<String, Long> growthCounter = initDateCounter();
+        for (Activity a : recentActivities) {
+            if (a.getCreatedAt() == null) continue;
+            String key = a.getCreatedAt().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+            growthCounter.put(key, growthCounter.getOrDefault(key, 0L) + 1L);
+        }
+        List<Map<String, Object>> growthTrend = new ArrayList<>();
+        growthCounter.forEach((k, v) -> {
+            Map<String, Object> point = new HashMap<>();
+            point.put("date", k.substring(5));
+            point.put("count", v);
+            growthTrend.add(point);
+        });
+        statistics.put("growthTrend", growthTrend);
+
+        Map<String, Object> statusDistribution = new HashMap<>();
+        statusDistribution.put("draft", statistics.get("pendingActivities"));
+        statusDistribution.put("published", statistics.get("ongoingActivities"));
+        statusDistribution.put("ongoing", statistics.get("ongoingActivities"));
+        statusDistribution.put("ended", statistics.get("endedActivities"));
+        statusDistribution.put("cancelled", statistics.get("cancelledActivities"));
+        statistics.put("statusDistribution", statusDistribution);
+
+        List<Map<String, Object>> participation = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
+                        .ne(Activity::getState, 3)
+                        .orderByDesc(Activity::getCurrentParticipants))
+                .stream()
+                .limit(5)
+                .map(a -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("name", a.getTitle());
+                    item.put("count", a.getCurrentParticipants() == null ? 0 : a.getCurrentParticipants());
+                    return item;
+                })
+                .toList();
+        statistics.put("participation", participation);
+
         return statistics;
     }
 
@@ -506,6 +556,61 @@ public class AdminServiceImpl implements AdminService {
         statistics.put("todayInteractions", postInteractionMapper.selectCount(new LambdaQueryWrapper<PostInteraction>()
                 .ge(PostInteraction::getCreatedAt, today)));
 
+        // 数据统计页：互动增长趋势（最近7天）
+        LocalDateTime sevenDaysAgo = LocalDate.now().minusDays(6).atStartOfDay();
+        List<PostInteraction> recentInteractions = postInteractionMapper.selectList(new LambdaQueryWrapper<PostInteraction>()
+                .eq(PostInteraction::getStatus, 1)
+                .ge(PostInteraction::getCreatedAt, sevenDaysAgo));
+        Map<String, Long> growthCounter = initDateCounter();
+        for (PostInteraction i : recentInteractions) {
+            if (i.getCreatedAt() == null) continue;
+            String key = i.getCreatedAt().toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+            growthCounter.put(key, growthCounter.getOrDefault(key, 0L) + 1L);
+        }
+        List<Map<String, Object>> growthTrend = new ArrayList<>();
+        growthCounter.forEach((k, v) -> {
+            Map<String, Object> point = new HashMap<>();
+            point.put("date", k.substring(5));
+            point.put("count", v);
+            growthTrend.add(point);
+        });
+        statistics.put("growthTrend", growthTrend);
+
+        Map<String, Object> typeDistribution = new HashMap<>();
+        typeDistribution.put("like", statistics.get("totalLikes"));
+        typeDistribution.put("comment", statistics.get("totalComments"));
+        typeDistribution.put("share", 0);
+        statistics.put("typeDistribution", typeDistribution);
+
+        List<Map<String, Object>> hotContent = postMapper.selectList(new LambdaQueryWrapper<Post>()
+                        .eq(Post::getStatus, 1)
+                        .orderByDesc(Post::getLikeCount)
+                        .orderByDesc(Post::getCommentCount))
+                .stream()
+                .limit(5)
+                .map(p -> {
+                    Map<String, Object> item = new HashMap<>();
+                    String title = p.getContent() == null ? ("动态#" + p.getId()) : p.getContent();
+                    if (title.length() > 16) {
+                        title = title.substring(0, 16) + "...";
+                    }
+                    item.put("name", title);
+                    item.put("count", (p.getLikeCount() == null ? 0 : p.getLikeCount())
+                            + (p.getCommentCount() == null ? 0 : p.getCommentCount()));
+                    return item;
+                })
+                .toList();
+        statistics.put("hotContent", hotContent);
+
         return statistics;
+    }
+
+    private Map<String, Long> initDateCounter() {
+        Map<String, Long> counter = new LinkedHashMap<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate d = LocalDate.now().minusDays(i);
+            counter.put(d.format(DateTimeFormatter.ISO_LOCAL_DATE), 0L);
+        }
+        return counter;
     }
 }

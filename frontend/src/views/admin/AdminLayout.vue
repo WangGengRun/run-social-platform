@@ -28,13 +28,13 @@
           <el-icon><Document /></el-icon>
           <span>动态审核</span>
         </el-menu-item>
-        <el-menu-item index="/admin/comments">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>评论审核</span>
-        </el-menu-item>
         <el-menu-item index="/admin/activities">
           <el-icon><Calendar /></el-icon>
           <span>活动管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/statistics">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>数据统计</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -90,8 +90,8 @@ const pageTitles = {
   '/admin/users': '用户管理',
   '/admin/alumni-verify': '校友认证审核',
   '/admin/content': '动态审核',
-  '/admin/comments': '评论审核',
-  '/admin/activities': '活动管理'
+  '/admin/activities': '活动管理',
+  '/admin/statistics': '数据统计'
 }
 
 // 当前页面标题
