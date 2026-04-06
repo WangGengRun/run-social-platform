@@ -70,6 +70,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/activity/my-signups',
+      name: 'activityMySignups',
+      component: () => import('../views/ActivityMySignups.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/activity/:id',
       name: 'activityDetail',
       component: () => import('../views/ActivityDetail.vue'),

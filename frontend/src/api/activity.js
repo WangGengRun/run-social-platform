@@ -60,6 +60,15 @@ export const activityApi = {
     })
   },
 
+  getMySignupActivities: ({ pageNum = 1, pageSize = 20 } = {}) => {
+    return service.get('/activity/my-signups', {
+      params: {
+        pageNum,
+        pageSize
+      }
+    })
+  },
+
   signupActivity: (id) => {
     return service.post(`/activity/${id}/signup`)
   },

@@ -27,6 +27,8 @@ public interface ActivityService extends IService<Activity> {
 
     Page<ActivityListVO> listMyOrganized(Integer pageNum, Integer pageSize);
 
+    Page<ActivityListVO> listMySignups(Integer pageNum, Integer pageSize);
+
     Page<ParticipantVO> listParticipants(Long activityId, Integer pageNum, Integer pageSize);
 
     void signup(Long activityId);

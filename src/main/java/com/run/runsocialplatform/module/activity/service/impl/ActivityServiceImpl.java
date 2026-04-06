@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -193,6 +194,42 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
             vo.setStatus(a.getState());
             return vo;
         }).collect(Collectors.toList());
+        voPage.setRecords(records);
+        return voPage;
+    }
+
+    @Override
+    public Page<ActivityListVO> listMySignups(Integer pageNum, Integer pageSize) {
+        activityServiceSelf.autoFinishExpired(LocalDateTime.now());
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        Page<ActivityParticipation> participationPage = new Page<>(pageNum, pageSize);
+        participationMapper.selectPage(participationPage, new LambdaQueryWrapper<ActivityParticipation>()
+                .eq(ActivityParticipation::getUserId, currentUserId)
+                .in(ActivityParticipation::getState, List.of(1, 2))
+                .orderByDesc(ActivityParticipation::getCreatedAt));
+
+        List<Long> activityIds = participationPage.getRecords().stream()
+                .map(ActivityParticipation::getActivityId)
+                .distinct()
+                .toList();
+        Map<Long, Activity> activityMap = activityIds.isEmpty() ? Map.of() : listByIds(activityIds).stream()
+                .collect(Collectors.toMap(Activity::getId, a -> a));
+
+        List<ActivityListVO> records = participationPage.getRecords().stream()
+                .map(p -> {
+                    Activity a = activityMap.get(p.getActivityId());
+                    if (a == null || a.getState() == 3) return null;
+                    ActivityListVO vo = new ActivityListVO();
+                    BeanUtils.copyProperties(a, vo);
+                    vo.setStatus(a.getState());
+                    vo.setJoined(true);
+                    vo.setSignupStatus(p.getState());
+                    return vo;
+                })
+                .filter(v -> v != null)
+                .toList();
+
+        Page<ActivityListVO> voPage = new Page<>(pageNum, pageSize, participationPage.getTotal());
         voPage.setRecords(records);
         return voPage;
     }

@@ -38,5 +38,8 @@ public class ActivityListVO {
 
     @Schema(description = "是否已报名")
     private Boolean joined = false;
+
+    @Schema(description = "我的报名状态：1-报名中, 2-已签到, 3-已取消")
+    private Integer signupStatus;
 }
 

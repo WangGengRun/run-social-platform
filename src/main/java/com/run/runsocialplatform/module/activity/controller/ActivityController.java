@@ -108,6 +108,15 @@ public class ActivityController {
         return Result.success(PageResult.of(page));
     }
 
+    @GetMapping("/my-signups")
+    @Operation(summary = "我报名的活动列表")
+    @PreAuthorize("isAuthenticated()")
+    public Result<PageResult<ActivityListVO>> mySignups(@RequestParam(defaultValue = "1") Integer pageNum,
+                                                         @RequestParam(defaultValue = "20") Integer pageSize) {
+        Page<ActivityListVO> page = activityService.listMySignups(pageNum, pageSize);
+        return Result.success(PageResult.of(page));
+    }
+
     @PostMapping("/{id}/signup")
     @Operation(summary = "报名活动")
     @PreAuthorize("hasAuthority('ALUMNI')")
