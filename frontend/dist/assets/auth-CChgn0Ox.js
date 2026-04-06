@@ -1,0 +1,1 @@
+import{s as r}from"./request-BwRRHZ0k.js";const s={sendCaptcha:(t,e="SMS",u=6)=>r.post("/auth/captcha/send",{target:t,type:e,length:u}),register:t=>r.post("/auth/register",t),login:t=>r.post("/auth/login",t),submitAlumniVerify:t=>r.post("/auth/alumni/verify",t),getAlumniVerifyStatus:()=>r.get("/auth/alumni/verify/status")};export{s as a};

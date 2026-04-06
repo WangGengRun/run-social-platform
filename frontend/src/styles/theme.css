@@ -1,0 +1,178 @@
+/* 遇见校友 — 全局视觉体系（字体在 index.html 引入） */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+
+  --ink: #0c1222;
+  --ink-muted: #5c6578;
+  --ink-faint: #8b95a8;
+
+  --app-bg: #eef1f8;
+  --app-mesh: radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.14), transparent),
+    radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.12), transparent),
+    radial-gradient(800px 400px at 50% 100%, rgba(244, 114, 182, 0.08), transparent),
+    linear-gradient(180deg, #eef1f8 0%, #e8ecf6 50%, #e4e9f4 100%);
+
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-solid: #ffffff;
+  --surface-elevated: #ffffff;
+
+  --border-subtle: rgba(12, 18, 34, 0.06);
+  --border-light: rgba(12, 18, 34, 0.08);
+
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft: rgba(79, 70, 229, 0.1);
+  --accent-glow: 0 8px 32px rgba(79, 70, 229, 0.18);
+
+  --gold: #b8860b;
+  --gold-soft: rgba(184, 134, 11, 0.12);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(12, 18, 34, 0.04);
+  --shadow-card: 0 4px 24px rgba(12, 18, 34, 0.06), 0 1px 3px rgba(12, 18, 34, 0.04);
+  --shadow-card-hover: 0 12px 40px rgba(12, 18, 34, 0.1), 0 4px 12px rgba(79, 70, 229, 0.08);
+  --shadow-glass: 0 8px 32px rgba(12, 18, 34, 0.08);
+
+  --shell-h: 56px;
+  /* PC 端主内容宽度 */
+  --content-max: 1180px;
+
+  /* Element Plus 主色对齐 */
+  --el-color-primary: #4f46e5;
+  --el-color-primary-light-3: #7c73ed;
+  --el-color-primary-light-5: #9890f0;
+  --el-color-primary-light-7: #b4adf4;
+  --el-color-primary-light-9: #e8e6fd;
+  --el-color-primary-dark-2: #3f38b8;
+  --el-border-radius-base: 10px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--app-bg);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* 表单与按钮略收紧，更精致 */
+.el-button {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px var(--border-light) inset !important;
+}
+
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.25) inset !important;
+}
+
+.el-card {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* 认证页共用 */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--app-mesh);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-page::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234f46e5' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 36px;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow-glass), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.auth-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #0ea5e9 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  margin-bottom: 16px;
+  box-shadow: var(--accent-glow);
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.auth-subtitle {
+  margin: 6px 0 24px;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+/* 校友端内容区（PC 加宽） */
+.alumni-page {
+  max-width: var(--content-max);
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 28px 36px;
+  min-height: calc(100vh - var(--shell-h));
+}
