@@ -3,7 +3,26 @@
     <AppShellBar />
     <div class="conversations-container alumni-page">
     <div class="conversations-header">
-      <h2 class="page-title">消息</h2>
+      <div class="tabs">
+        <router-link to="/message" class="tab active">
+          <el-badge
+            :value="messageUnread"
+            :hidden="!messageUnread"
+            :max="99"
+          >
+            <span>私信</span>
+          </el-badge>
+        </router-link>
+        <router-link to="/message/notice" class="tab">
+          <el-badge
+            :value="noticeUnread"
+            :hidden="!noticeUnread"
+            :max="99"
+          >
+            <span>消息中心</span>
+          </el-badge>
+        </router-link>
+      </div>
       <el-badge :value="totalUnreadCount" :hidden="!hasUnreadMessages" type="danger" class="unread-badge">
         <el-icon class="message-icon"><ChatDotRound /></el-icon>
       </el-badge>
@@ -81,6 +100,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { useMessageStore } from '../stores/message'
+import { useNoticeStore } from '../stores/notice'
 import { useUserStore } from '../stores/user'
 import websocketManager from '../utils/websocket-manager'
 import ResolvedAvatar from '../components/ResolvedAvatar.vue'
@@ -89,6 +109,7 @@ import AlumniOnlyBlur from '../components/AlumniOnlyBlur.vue'
 
 const router = useRouter()
 const messageStore = useMessageStore()
+const noticeStore = useNoticeStore()
 const userStore = useUserStore()
 const isUserNonAlumni = computed(() => userStore.role === 'USER')
 
@@ -99,6 +120,8 @@ const currentUserId = computed(() => userStore.userId)
 const conversations = computed(() => messageStore.conversations)
 const totalUnreadCount = computed(() => messageStore.totalUnreadCount)
 const hasUnreadMessages = computed(() => messageStore.hasUnreadMessages)
+const messageUnread = computed(() => messageStore.totalUnreadCount || 0)
+const noticeUnread = computed(() => noticeStore.unreadCount || 0)
 
 const formatTime = (time) => {
   if (!time) return ''
@@ -216,6 +239,7 @@ onMounted(async () => {
   loading.value = true
   await messageStore.fetchUnreadCounts()
   await messageStore.fetchConversations(true)
+  await noticeStore.fetchUnreadCount()
   hasMore.value = messageStore.hasMoreConversations
   loading.value = false
 
@@ -251,12 +275,34 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.page-title {
-  margin: 0;
-  font-size: 18px;
+.tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab {
+  text-decoration: none;
+  color: var(--ink-muted);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: 999px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tab.active {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .unread-badge {

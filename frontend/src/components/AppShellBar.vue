@@ -66,6 +66,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Plus, ChatDotRound } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useMessageStore } from '../stores/message'
+import { useNoticeStore } from '../stores/notice'
 import { alumniApi } from '../api/alumni'
 import { authApi } from '../api/auth'
 import ResolvedAvatar from './ResolvedAvatar.vue'
@@ -74,6 +75,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const messageStore = useMessageStore()
+const noticeStore = useNoticeStore()
 
 const isFeedActive = computed(
   () => route.path === '/' || route.path === '/feed'
@@ -83,8 +85,8 @@ const isActivityActive = computed(
   () => route.path === '/activity' || route.path.startsWith('/activity/')
 )
 
-const totalUnreadCount = computed(() => messageStore.totalUnreadCount)
-const hasUnreadMessages = computed(() => messageStore.hasUnreadMessages)
+const totalUnreadCount = computed(() => (messageStore.totalUnreadCount || 0) + (noticeStore.unreadCount || 0))
+const hasUnreadMessages = computed(() => totalUnreadCount.value > 0)
 
 const goPublish = () => router.push('/post/publish')
 
@@ -112,6 +114,7 @@ onMounted(() => {
       }
       if (role === 'ALUMNI') {
         messageStore.fetchUnreadCounts()
+        noticeStore.fetchUnreadCount()
       }
     }).catch(() => {})
   }

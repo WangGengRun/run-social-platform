@@ -184,3 +184,15 @@ CREATE TABLE `operation_log` (
                                  KEY `idx_user_id` (`user_id`),
                                  KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';
+
+-- 11. 消息中心阅读状态表（记录用户最后阅读时间，用于未读红点/已读标记）
+CREATE TABLE `notice_read_state` (
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+                                   `user_id` bigint NOT NULL COMMENT '用户ID',
+                                   `last_read_at` datetime DEFAULT NULL COMMENT '最后阅读时间（为NULL表示从未阅读）',
+                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                   PRIMARY KEY (`id`),
+                                   UNIQUE KEY `uk_user_id` (`user_id`),
+                                   CONSTRAINT `fk_notice_read_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息中心阅读状态';

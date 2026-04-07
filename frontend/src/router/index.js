@@ -94,6 +94,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/message/notice',
+      name: 'noticeCenter',
+      component: () => import('../views/NoticeCenter.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/message/detail',
       name: 'messageDetail',
       component: () => import('../views/MessageDetail.vue'),

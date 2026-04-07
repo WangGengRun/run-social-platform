@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.run.runsocialplatform.module.message.mapper.NoticeMapper">
+
+    <sql id="notice_union">
+        <!-- 1）别人对“我发布的动态”的点赞/评论 -->
+        (
+            SELECT
+                pi.id AS sourceId,
+                CASE pi.type WHEN 1 THEN 'LIKE' WHEN 2 THEN 'COMMENT' ELSE 'UNKNOWN' END AS noticeType,
+                pi.user_id AS fromUserId,
+                u.username AS fromUsername,
+                ai.real_name AS fromRealName,
+                u.avatar AS fromAvatar,
+                pi.post_id AS postId,
+                LEFT(p.content, 80) AS postContent,
+                pi.content AS commentContent,
+                pi.created_at AS createdAt
+            FROM post_interaction pi
+                     INNER JOIN post p ON p.id = pi.post_id
+                     INNER JOIN user u ON u.id = pi.user_id
+                     LEFT JOIN alumni_info ai ON ai.user_id = u.id
+            WHERE p.user_id = #{userId}
+              AND p.status = 1
+              AND pi.status = 1
+              AND pi.type IN (1, 2)
+              AND pi.user_id != #{userId}
+        )
+        UNION ALL
+        <!-- 2）别人“回复了我发表的评论”（无论该动态是谁发的） -->
+        (
+            SELECT
+                pi.id AS sourceId,
+                'COMMENT' AS noticeType,
+                pi.user_id AS fromUserId,
+                u.username AS fromUsername,
+                ai.real_name AS fromRealName,
+                u.avatar AS fromAvatar,
+                pi.post_id AS postId,
+                LEFT(p.content, 80) AS postContent,
+                pi.content AS commentContent,
+                pi.created_at AS createdAt
+            FROM post_interaction pi
+                     INNER JOIN post_interaction parent ON parent.id = pi.parent_id
+                     INNER JOIN post p ON p.id = pi.post_id
+                     INNER JOIN user u ON u.id = pi.user_id
+                     LEFT JOIN alumni_info ai ON ai.user_id = u.id
+            WHERE parent.user_id = #{userId}
+              AND pi.status = 1
+              AND pi.type = 2
+              AND pi.user_id != #{userId}
+        )
+        UNION ALL
+        <!-- 3）别人关注了我 -->
+        (
+            SELECT
+                f.id AS sourceId,
+                'FOLLOW' AS noticeType,
+                f.follower_id AS fromUserId,
+                u.username AS fromUsername,
+                ai.real_name AS fromRealName,
+                u.avatar AS fromAvatar,
+                NULL AS postId,
+                NULL AS postContent,
+                NULL AS commentContent,
+                f.created_at AS createdAt
+            FROM follow f
+                     INNER JOIN user u ON u.id = f.follower_id
+                     LEFT JOIN alumni_info ai ON ai.user_id = u.id
+            WHERE f.followee_id = #{userId}
+              AND f.status = 1
+              AND f.follower_id != #{userId}
+        )
+    </sql>
+
+    <select id="selectNoticeList" resultType="com.run.runsocialplatform.module.message.model.vo.NoticeVO">
+        SELECT *
+        FROM (
+                 <include refid="notice_union"/>
+             ) t
+        ORDER BY t.createdAt DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countNoticeList" resultType="long">
+        SELECT COUNT(1)
+        FROM (
+                 <include refid="notice_union"/>
+             ) t
+    </select>
+
+    <select id="countUnreadNoticeList" resultType="long">
+        SELECT COUNT(1)
+        FROM (
+                 <include refid="notice_union"/>
+             ) t
+        WHERE t.createdAt &gt; #{lastReadAt}
+    </select>
+
+</mapper>
+
