@@ -59,7 +59,7 @@
 
         <div class="conversation-content">
           <div class="conversation-header">
-            <div class="conversation-name">{{ conversation.realName || conversation.username }}</div>
+            <div class="conversation-name">{{ conversation.username || conversation.realName }}</div>
             <div class="conversation-time">{{ formatTime(conversation.lastMessageTime) }}</div>
           </div>
 

@@ -68,11 +68,11 @@
               <div class="post-header">
                 <div class="user-info" @click.stop="handleUserClick(userInfo.userId)">
                   <ResolvedAvatar :size="40" :src="userInfo.avatar || ''">
-                    {{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}
+                    {{ userInfo.username?.charAt(0) || userInfo.realName?.charAt(0) || '用' }}
                   </ResolvedAvatar>
                   <div class="user-details">
                     <div class="username-row">
-                      <div class="username">{{ userInfo.realName || userInfo.username }}</div>
+                      <div class="username">{{ userInfo.username || userInfo.realName }}</div>
                       <el-tag v-if="post.userRole === 'ALUMNI'" size="small" type="warning" effect="plain">校友</el-tag>
                       <el-tag v-else size="small" effect="plain">普通用户</el-tag>
                     </div>
@@ -182,10 +182,10 @@
                 @click="handleUserClick(user.userId)"
               >
                 <ResolvedAvatar :size="50" :src="user.avatar || ''" @click.stop="handleUserClick(user.userId)">
-                  {{ user.realName?.charAt(0) || user.username?.charAt(0) || '用' }}
+                  {{ user.username?.charAt(0) || user.realName?.charAt(0) || '用' }}
                 </ResolvedAvatar>
                 <div class="user-details">
-                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
+                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.username || user.realName }}</div>
                   <div class="user-meta">
                     <span v-if="user.college">{{ user.college }}</span>
                     <span v-if="user.major"> · {{ user.major }}</span>
@@ -217,10 +217,10 @@
                 @click="handleUserClick(user.userId)"
               >
                 <ResolvedAvatar :size="50" :src="user.avatar || ''" @click.stop="handleUserClick(user.userId)">
-                  {{ user.realName?.charAt(0) || user.username?.charAt(0) || '用' }}
+                  {{ user.username?.charAt(0) || user.realName?.charAt(0) || '用' }}
                 </ResolvedAvatar>
                 <div class="user-details">
-                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.realName || user.username }}</div>
+                  <div class="username" @click.stop="handleUserClick(user.userId)">{{ user.username || user.realName }}</div>
                   <div class="user-meta">
                     <span v-if="user.college">{{ user.college }}</span>
                     <span v-if="user.major"> · {{ user.major }}</span>

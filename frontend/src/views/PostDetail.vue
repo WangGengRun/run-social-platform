@@ -8,7 +8,7 @@
         <div class="user-info" @click="handleUserClick(post.userId)">
           <ResolvedAvatar :size="40" :src="post.avatar || ''" />
           <div class="user-details">
-            <div class="username">{{ post.realName || post.username }}</div>
+            <div class="username">{{ post.username || post.realName }}</div>
             <div class="time">{{ formatTime(post.createdAt) }}</div>
           </div>
         </div>

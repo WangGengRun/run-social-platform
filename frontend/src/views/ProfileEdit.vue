@@ -14,7 +14,7 @@
           <div class="avatar-preview">
             <el-avatar :size="120" :src="avatarUrl" class="current-avatar">
               <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
-              <span v-else>{{ userStore.userInfo?.realName?.charAt(0) || userStore.username?.charAt(0) || '用' }}</span>
+              <span v-else>{{ userStore.username?.charAt(0) || userStore.userInfo?.realName?.charAt(0) || '用' }}</span>
             </el-avatar>
             <div class="avatar-actions">
               <el-button type="primary" size="small" @click="triggerFileInput">

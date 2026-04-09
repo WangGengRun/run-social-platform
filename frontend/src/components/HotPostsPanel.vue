@@ -26,7 +26,7 @@
         <ResolvedAvatar :size="34" :src="post.avatar || ''" />
         <div class="hot-main">
           <div class="hot-author">
-            {{ post.realName || post.username }}
+            {{ post.username || post.realName }}
           </div>
           <div class="hot-content">
             {{ post.content }}

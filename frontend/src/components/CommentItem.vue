@@ -4,7 +4,7 @@
       <div class="user-info" @click="handleUserClick(comment.userId)">
         <ResolvedAvatar :size="32" :src="comment.avatar || ''" />
         <div class="user-details">
-          <div class="username">{{ comment.realName || comment.username }}</div>
+          <div class="username">{{ comment.username || comment.realName }}</div>
           <div class="time">{{ formatTime(comment.createdAt) }}</div>
         </div>
       </div>
@@ -86,7 +86,7 @@ const formatTime = (time) => {
 const handleReplyClick = () => {
   emit('reply', {
     userId: comment.userId,
-    username: comment.realName || comment.username,
+    username: comment.username || comment.realName,
     commentId: comment.id
   })
 }

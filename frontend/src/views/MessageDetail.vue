@@ -9,9 +9,9 @@
       <div class="user-info">
         <el-avatar :size="40" :src="avatarUrl" class="header-avatar">
           <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
-          <span v-else>{{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}</span>
+          <span v-else>{{ userInfo.username?.charAt(0) || userInfo.realName?.charAt(0) || '用' }}</span>
         </el-avatar>
-        <span class="user-name">{{ userInfo.realName || userInfo.username }}</span>
+        <span class="user-name">{{ userInfo.username || userInfo.realName }}</span>
         <span v-if="userInfo.online" class="online-status">在线</span>
       </div>
       <el-button type="text" class="more-button">

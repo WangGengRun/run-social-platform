@@ -3,7 +3,7 @@
     <div class="user-top">
       <div class="avatar-section">
         <ResolvedAvatar :size="80" :src="userInfo.avatar || ''">
-          {{ userInfo.realName?.charAt(0) || userInfo.username?.charAt(0) || '用' }}
+          {{ userInfo.username?.charAt(0) || userInfo.realName?.charAt(0) || '用' }}
         </ResolvedAvatar>
         <el-tag :type="isAlumni ? 'success' : 'info'" size="small" class="verified-tag">
           {{ isAlumni ? '校友' : '普通用户' }}
@@ -12,7 +12,7 @@
 
       <AlumniOnlyBlur :locked="contentLocked" class="user-top-blur">
         <div class="user-name">
-          <h2>{{ userInfo.realName || userInfo.username }}</h2>
+          <h2>{{ userInfo.username || userInfo.realName }}</h2>
           <p v-if="userInfo.bio" class="bio">{{ userInfo.bio }}</p>
         </div>
 

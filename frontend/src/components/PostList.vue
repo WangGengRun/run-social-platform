@@ -20,11 +20,11 @@
         <div class="post-header">
           <div class="user-info" @click.stop="handleUserClick(post.userId)">
             <ResolvedAvatar :size="40" :src="post.avatar || ''" class="avatar">
-              <span>{{ post.realName?.charAt(0) || post.username?.charAt(0) || '用' }}</span>
+              <span>{{ post.username?.charAt(0) || post.realName?.charAt(0) || '用' }}</span>
             </ResolvedAvatar>
             <div class="user-details">
               <div class="username-row">
-                <div class="username">{{ post.realName || post.username }}</div>
+                <div class="username">{{ post.username || post.realName }}</div>
                 <el-tag v-if="post.userRole === 'ALUMNI'" size="small" type="warning" effect="plain">校友</el-tag>
                 <el-tag v-else size="small" effect="plain">普通用户</el-tag>
               </div>

@@ -40,7 +40,7 @@
 
               <div class="p-meta">
                 <div class="p-name">
-                  {{ p.realName || p.username }}
+                  {{ p.username || p.realName }}
                   <el-tag v-if="p.userId === userId" size="small" type="success" effect="dark">
                     我
                   </el-tag>
