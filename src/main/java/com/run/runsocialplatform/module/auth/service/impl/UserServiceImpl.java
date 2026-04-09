@@ -326,10 +326,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         alumniInfo.setGraduationYear(verifyDTO.getGraduationYear());
         alumniInfo.setCollege(verifyDTO.getCollege());
         alumniInfo.setMajor(verifyDTO.getMajor());
-        alumniInfo.setCompany(verifyDTO.getCompany());
-        alumniInfo.setPosition(verifyDTO.getPosition());
-        alumniInfo.setCity(verifyDTO.getCity());
-        alumniInfo.setBio(verifyDTO.getBio());
+        alumniInfo.setStudentCardImage(verifyDTO.getStudentCardImage());
         alumniInfo.setVerifyStatus(0);
         alumniInfo.setVerifyNotes(null);
         alumniInfo.setVerifyTime(null);
@@ -358,7 +355,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
         AlumniVerifyStatusVO vo = new AlumniVerifyStatusVO();
         String normalizedRole = normalizeRoleByVerifyStatus(user, alumniInfo);
         vo.setRole(normalizedRole);
-        if (alumniInfo == null) {
+        if (alumniInfo == null || alumniInfo.getVerifyStatus() == null || alumniInfo.getVerifyStatus() < 0) {
+            vo.setVerifyStatus(-1);
+            return vo;
+        }
+        // 兼容历史数据：若记录显示“待审核(0)”但认证必填资料不完整，应视为“未提交(-1)”
+        if (Integer.valueOf(0).equals(alumniInfo.getVerifyStatus()) && !hasSubmittedVerifyData(alumniInfo)) {
             vo.setVerifyStatus(-1);
             return vo;
         }
@@ -388,6 +390,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserEntity> impleme
             user.setRole(expectedRole);
         }
         return expectedRole;
+    }
+
+    /**
+     * 判断是否已提交过校友认证核心资料（用于兼容历史脏数据）
+     */
+    private boolean hasSubmittedVerifyData(AlumniInfo alumniInfo) {
+        if (alumniInfo == null) return false;
+        return StrUtil.isNotBlank(alumniInfo.getRealName())
+                && StrUtil.isNotBlank(alumniInfo.getStudentId())
+                && alumniInfo.getAdmissionYear() != null
+                && StrUtil.isNotBlank(alumniInfo.getCollege())
+                && StrUtil.isNotBlank(alumniInfo.getMajor())
+                && StrUtil.isNotBlank(alumniInfo.getStudentCardImage());
     }
 
     /**

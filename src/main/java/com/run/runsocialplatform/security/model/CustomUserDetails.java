@@ -9,7 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Arrays;
 
 @Data
 public class CustomUserDetails implements UserDetails {
@@ -22,8 +22,11 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 根据用户角色创建权限
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
+        // 兼容 hasAuthority('ALUMNI') 与 hasRole('ALUMNI') 两种写法
+        return Arrays.asList(
+                new SimpleGrantedAuthority(user.getRole()),
+                new SimpleGrantedAuthority("ROLE_" + user.getRole())
+        );
     }
 
     @Override

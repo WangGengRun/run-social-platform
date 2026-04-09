@@ -64,6 +64,17 @@
         <el-descriptions-item label="毕业年份">{{ detail.alumniInfo?.graduationYear || '未设置' }}</el-descriptions-item>
         <el-descriptions-item label="学院">{{ detail.alumniInfo?.college || '未设置' }}</el-descriptions-item>
         <el-descriptions-item label="专业">{{ detail.alumniInfo?.major || '未设置' }}</el-descriptions-item>
+        <el-descriptions-item label="学生卡照片">
+          <el-image
+            v-if="detailStudentCardUrl"
+            :src="detailStudentCardUrl"
+            fit="contain"
+            style="width: 240px; height: 160px; border: 1px solid #ebeef5; border-radius: 6px;"
+            :preview-src-list="[detailStudentCardUrl]"
+            :preview-teleported="true"
+          />
+          <span v-else>未上传</span>
+        </el-descriptions-item>
         <el-descriptions-item label="公司">{{ detail.alumniInfo?.company || '未设置' }}</el-descriptions-item>
         <el-descriptions-item label="职位">{{ detail.alumniInfo?.position || '未设置' }}</el-descriptions-item>
         <el-descriptions-item label="城市">{{ detail.alumniInfo?.city || '未设置' }}</el-descriptions-item>
@@ -77,6 +88,7 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import adminApi from '../../api/admin'
+import { resolveAvatarUrl } from '../../utils/avatarUrl'
 
 const keyword = ref('')
 const records = ref([])
@@ -86,6 +98,7 @@ const total = ref(0)
 
 const detailVisible = ref(false)
 const detail = ref(null)
+const detailStudentCardUrl = ref('')
 
 const fetchPendingList = async (resetPage = false) => {
   if (resetPage) pageNum.value = 1
@@ -108,6 +121,8 @@ const viewDetail = async (userId) => {
   try {
     const res = await adminApi.getUserDetail(userId)
     detail.value = res.data
+    const objectName = detail.value?.alumniInfo?.studentCardImage
+    detailStudentCardUrl.value = objectName ? await resolveAvatarUrl(objectName) : ''
     detailVisible.value = true
   } catch (error) {
     console.error('获取认证详情失败:', error)

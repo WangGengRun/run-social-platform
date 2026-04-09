@@ -27,6 +27,7 @@ CREATE TABLE `alumni_info` (
                                `graduation_year` int DEFAULT NULL COMMENT '毕业年份',
                                `college` varchar(100) DEFAULT NULL COMMENT '学院',
                                `major` varchar(100) DEFAULT NULL COMMENT '专业',
+                               `student_card_image` varchar(255) DEFAULT NULL COMMENT '学生卡照片（MinIO objectName）',
                                `company` varchar(100) DEFAULT NULL COMMENT '公司',
                                `position` varchar(100) DEFAULT NULL COMMENT '职位',
                                `city` varchar(50) DEFAULT NULL COMMENT '城市',

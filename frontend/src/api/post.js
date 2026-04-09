@@ -24,7 +24,9 @@ export const postApi = {
 
   getFollowingPosts(pageNum, pageSize) {
     return service.get('/post/following', {
-      params: { pageNum, pageSize }
+      params: { pageNum, pageSize },
+      silentAuthError: true,
+      silentBusinessError: true
     })
   },
 

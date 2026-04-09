@@ -42,11 +42,12 @@
           <p v-else-if="verifyStatusInfo.verifyStatus === 1">认证已通过，你当前为校友身份。</p>
           <p v-else>认证未通过：{{ verifyStatusInfo.verifyNotes || '请完善信息后重新提交' }}</p>
           <el-button
-            v-if="userStore.role === 'USER' && verifyStatusInfo.verifyStatus !== 0"
+            v-if="showVerifyActionButton"
             type="primary"
+            :disabled="verifyStatusInfo.verifyStatus === 0"
             @click="verifyDialogVisible = true"
           >
-            {{ verifyStatusInfo.verifyStatus === 2 ? '重新提交认证' : '申请校友认证' }}
+            {{ verifyActionText }}
           </el-button>
         </div>
       </el-card>
@@ -238,20 +239,30 @@
 
     <el-dialog v-model="verifyDialogVisible" title="校友认证申请" width="560px">
       <el-form ref="verifyFormRef" :model="verifyForm" :rules="verifyRules" label-width="92px">
-        <el-form-item label="真实姓名" prop="realName"><el-input v-model="verifyForm.realName" /></el-form-item>
-        <el-form-item label="学号" prop="studentId"><el-input v-model="verifyForm.studentId" /></el-form-item>
-        <el-form-item label="入学年份" prop="admissionYear"><el-input v-model="verifyForm.admissionYear" type="number" /></el-form-item>
-        <el-form-item label="毕业年份"><el-input v-model="verifyForm.graduationYear" type="number" /></el-form-item>
-        <el-form-item label="学院"><el-input v-model="verifyForm.college" /></el-form-item>
-        <el-form-item label="专业"><el-input v-model="verifyForm.major" /></el-form-item>
-        <el-form-item label="公司"><el-input v-model="verifyForm.company" /></el-form-item>
-        <el-form-item label="职位"><el-input v-model="verifyForm.position" /></el-form-item>
-        <el-form-item label="城市"><el-input v-model="verifyForm.city" /></el-form-item>
-        <el-form-item label="个人简介"><el-input v-model="verifyForm.bio" type="textarea" :rows="3" maxlength="500" show-word-limit /></el-form-item>
+        <el-form-item label="真实姓名" prop="realName"><el-input v-model="verifyForm.realName" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="学号" prop="studentId"><el-input v-model="verifyForm.studentId" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="入学年份" prop="admissionYear"><el-input v-model="verifyForm.admissionYear" type="number" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="毕业年份"><el-input v-model="verifyForm.graduationYear" type="number" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="学院"><el-input v-model="verifyForm.college" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="专业"><el-input v-model="verifyForm.major" :disabled="!canSubmitVerify" /></el-form-item>
+        <el-form-item label="学生卡照片" prop="studentCardImage">
+          <el-upload
+            :show-file-list="false"
+            :auto-upload="false"
+            accept=".jpg,.jpeg,.png,.webp"
+            :on-change="handleStudentCardChange"
+            :disabled="!canSubmitVerify"
+          >
+            <el-button :loading="studentCardUploading" :disabled="!canSubmitVerify">上传学生卡</el-button>
+          </el-upload>
+          <div v-if="studentCardDisplayUrl" class="student-card-preview-wrap">
+            <el-image :src="studentCardDisplayUrl" fit="contain" class="student-card-preview" />
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="verifyDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="verifySubmitting" @click="submitVerify">提交申请</el-button>
+        <el-button v-if="canSubmitVerify" type="primary" :loading="verifySubmitting" @click="submitVerify">提交申请</el-button>
       </template>
     </el-dialog>
 
@@ -344,16 +355,31 @@ const verifyForm = ref({
   graduationYear: '',
   college: '',
   major: '',
-  company: '',
-  position: '',
-  city: '',
-  bio: ''
+  studentCardImage: ''
 })
+const studentCardUploading = ref(false)
+const studentCardDisplayUrl = ref('')
 const verifyRules = {
   realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
   studentId: [{ required: true, message: '请输入学号', trigger: 'blur' }],
-  admissionYear: [{ required: true, message: '请输入入学年份', trigger: 'blur' }]
+  admissionYear: [{ required: true, message: '请输入入学年份', trigger: 'blur' }],
+  studentCardImage: [{ required: true, message: '请上传学生卡照片', trigger: 'change' }]
 }
+
+const showVerifyActionButton = computed(() => isSelf.value && userStore.role !== 'ADMIN')
+
+const verifyActionText = computed(() => {
+  const status = verifyStatusInfo.value.verifyStatus
+  if (status === 0) return '认证审核中'
+  if (status === 1) return '查看认证资料'
+  if (status === 2) return '重新提交认证'
+  return '申请校友认证'
+})
+
+const canSubmitVerify = computed(() => {
+  const status = verifyStatusInfo.value.verifyStatus
+  return status === -1 || status === 2
+})
 
 const isSelf = computed(() => {
   const isLoggedIn = userStore.isLoggedIn
@@ -861,14 +887,42 @@ const openVerifyDialogPrefill = () => {
     graduationYear: userInfo.value.graduationYear || '',
     college: userInfo.value.college || '',
     major: userInfo.value.major || '',
-    company: userInfo.value.company || '',
-    position: userInfo.value.position || '',
-    city: userInfo.value.city || '',
-    bio: userInfo.value.bio || ''
+    studentCardImage: userInfo.value.studentCardImage || ''
+  }
+  if (verifyForm.value.studentCardImage) {
+    resolveAvatarUrl(verifyForm.value.studentCardImage).then((url) => {
+      studentCardDisplayUrl.value = url || ''
+    })
+  } else {
+    studentCardDisplayUrl.value = ''
+  }
+}
+
+const handleStudentCardChange = async (file) => {
+  if (!file?.raw) return
+  studentCardUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file.raw)
+    const res = await authApi.uploadStudentCard(formData)
+    if (res.code === 200 && res.data) {
+      verifyForm.value.studentCardImage = res.data
+      studentCardDisplayUrl.value = await resolveAvatarUrl(res.data)
+      ElMessage.success('学生卡照片上传成功')
+      verifyFormRef.value?.validateField?.('studentCardImage')
+    } else {
+      ElMessage.error(res.message || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传学生卡照片失败:', error)
+    ElMessage.error('上传失败，请重试')
+  } finally {
+    studentCardUploading.value = false
   }
 }
 
 const submitVerify = async () => {
+  if (!canSubmitVerify.value) return
   if (!verifyFormRef.value) return
   await verifyFormRef.value.validate(async (valid) => {
     if (!valid) return
@@ -877,7 +931,8 @@ const submitVerify = async () => {
       const payload = {
         ...verifyForm.value,
         admissionYear: Number(verifyForm.value.admissionYear),
-        graduationYear: verifyForm.value.graduationYear ? Number(verifyForm.value.graduationYear) : null
+        graduationYear: verifyForm.value.graduationYear ? Number(verifyForm.value.graduationYear) : null,
+        studentCardImage: verifyForm.value.studentCardImage
       }
       const res = await authApi.submitAlumniVerify(payload)
       if (res.code === 200) {
@@ -1339,6 +1394,18 @@ watch(verifyDialogVisible, (visible) => {
 
 .loading-more .el-icon {
   font-size: 20px;
+}
+
+.student-card-preview-wrap {
+  margin-top: 10px;
+}
+
+.student-card-preview {
+  width: 220px;
+  height: 140px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  background: #fff;
 }
 
 @media (max-width: 768px) {

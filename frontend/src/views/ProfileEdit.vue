@@ -14,7 +14,7 @@
           <div class="avatar-preview">
             <el-avatar :size="120" :src="avatarUrl" class="current-avatar">
               <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
-              <span v-else>{{ form.realName.charAt(0) || '用' }}</span>
+              <span v-else>{{ userStore.userInfo?.realName?.charAt(0) || userStore.username?.charAt(0) || '用' }}</span>
             </el-avatar>
             <div class="avatar-actions">
               <el-button type="primary" size="small" @click="triggerFileInput">
@@ -41,30 +41,14 @@
           label-width="120px"
           class="profile-form"
         >
-          <el-form-item label="真实姓名" prop="realName">
-            <el-input v-model="form.realName" placeholder="请输入真实姓名" />
+          <el-form-item label="邮箱" prop="email">
+            <el-input v-model="form.email" placeholder="请输入邮箱" />
           </el-form-item>
-          
-          <el-form-item label="学号" prop="studentId">
-            <el-input v-model="form.studentId" placeholder="请输入学号" />
+
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="form.phone" placeholder="请输入手机号" />
           </el-form-item>
-          
-          <el-form-item label="入学年份" prop="admissionYear" required>
-            <el-input v-model="form.admissionYear" type="number" placeholder="请输入入学年份" />
-          </el-form-item>
-          
-          <el-form-item label="毕业年份" prop="graduationYear">
-            <el-input v-model="form.graduationYear" type="number" placeholder="请输入毕业年份" />
-          </el-form-item>
-          
-          <el-form-item label="学院" prop="college">
-            <el-input v-model="form.college" placeholder="请输入学院" />
-          </el-form-item>
-          
-          <el-form-item label="专业" prop="major">
-            <el-input v-model="form.major" placeholder="请输入专业" />
-          </el-form-item>
-          
+
           <el-form-item label="公司" prop="company">
             <el-input v-model="form.company" placeholder="请输入公司" />
           </el-form-item>
@@ -121,12 +105,8 @@ const avatarUrl = ref('')
 const avatarObjectName = ref('')
 
 const form = ref({
-  realName: '',
-  studentId: '',
-  admissionYear: '',
-  graduationYear: '',
-  college: '',
-  major: '',
+  email: '',
+  phone: '',
   company: '',
   position: '',
   city: '',
@@ -134,15 +114,10 @@ const form = ref({
 })
 
 const rules = ref({
-  admissionYear: [
+  email: [
     {
-      required: true,
-      message: '请输入入学年份',
-      trigger: 'blur'
-    },
-    {
-      pattern: /^\d+$/,
-      message: '入学年份必须是数字',
+      type: 'email',
+      message: '邮箱格式不正确',
       trigger: 'blur'
     }
   ]
@@ -153,12 +128,8 @@ const initForm = async () => {
     const response = await alumniApi.getCurrentProfile()
     if (response.code === 200) {
       form.value = {
-        realName: response.data.realName || '',
-        studentId: response.data.studentId || '',
-        admissionYear: response.data.admissionYear || response.data.enrollYear || '',
-        graduationYear: response.data.graduationYear || '',
-        college: response.data.college || '',
-        major: response.data.major || '',
+        email: response.data.email || '',
+        phone: response.data.phone || '',
         company: response.data.company || '',
         position: response.data.position || '',
         city: response.data.city || '',
@@ -255,11 +226,11 @@ const handleSubmit = async () => {
         if (response.code === 200) {
           userStore.patchUserInfo({
             avatar: avatarObjectName.value || '',
-            realName: form.value.realName || userStore.userInfo?.realName
+            realName: userStore.userInfo?.realName
           })
           ElMessage.success('保存成功')
           // 跳转到个人主页并刷新
-          router.push('/profile/' + form.value.userId || '')
+          router.push(`/profile/${userStore.userId}`)
         } else {
           ElMessage.error('保存失败，请重试')
         }

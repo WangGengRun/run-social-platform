@@ -6,6 +6,8 @@ import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 
@@ -75,6 +77,15 @@ public class GlobalExceptionHandler {
         log.warn("上传文件过大: {}", e.getMessage());
         return Result.error(ResultCode.PARAM_VALIDATE_FAILED.getCode(),
                 "图片有点大啦，单张请控制在 10MB 以内 (｡•́︿•̀｡)");
+    }
+
+    /**
+     * 处理数据库唯一键冲突（如邮箱/手机号重复）
+     */
+    @ExceptionHandler({DuplicateKeyException.class, DataIntegrityViolationException.class})
+    public Result<Void> handleDuplicateKeyException(Exception e) {
+        log.warn("数据库约束异常: {}", e.getMessage());
+        return Result.error(ResultCode.PARAM_ERROR.getCode(), "保存失败：邮箱或手机号可能已被占用");
     }
 
     /**

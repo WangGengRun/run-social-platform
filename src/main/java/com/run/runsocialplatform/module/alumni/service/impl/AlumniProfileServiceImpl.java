@@ -1,7 +1,6 @@
 package com.run.runsocialplatform.module.alumni.service.impl;
 
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -41,18 +40,8 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
     @Override
     public AlumniProfileVO getCurrentUserProfile() {
         Long currentUserId = SecurityUtil.getCurrentUserId();
-        AlumniInfo alumniInfo = getByUserId(currentUserId);
-
-        if (alumniInfo == null) {
-            // 如果还没有校友信息，创建默认信息
-            alumniInfo = createDefaultAlumniInfo(currentUserId);
-        }
-
-        // 查询完整详情
-        AlumniProfileVO profile = alumniProfileMapper.selectAlumniDetail(
-                alumniInfo.getId(), currentUserId);
-
-        return profile;
+        // 直接按 userId 查询，不再自动创建“待审核”默认记录，避免未提交却显示审核中
+        return getAlumniProfileByUserId(currentUserId);
     }
 
 
@@ -66,30 +55,13 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
         if (alumniInfo == null) {
             alumniInfo = new AlumniInfo();
             alumniInfo.setUserId(currentUserId);
-            alumniInfo.setVerifyStatus(0); // 更新信息后需要重新审核
-        } else {
-            // 如果修改了关键信息，需要重新审核
-            boolean needReverify = !alumniInfo.getStudentId().equals(profileDTO.getStudentId())
-                    || !alumniInfo.getRealName().equals(profileDTO.getRealName())
-                    || !alumniInfo.getAdmissionYear().equals(profileDTO.getAdmissionYear());
-
-            if (needReverify) {
-                alumniInfo.setVerifyStatus(0);
-            }
+            alumniInfo.setVerifyStatus(-1);
         }
-
-        // 检查学号是否已被其他用户使用
-        if (alumniInfo.getId() == null ||
-                !alumniInfo.getStudentId().equals(profileDTO.getStudentId())) {
-            int count = alumniProfileMapper.countByStudentIdExcludeUser(
-                    profileDTO.getStudentId(), currentUserId);
-            if (count > 0) {
-                throw new BusinessException(ResultCode.STUDENT_ID_EXISTS, "学号已被其他用户使用");
-            }
-        }
-
-        // 复制属性
-        BeanUtil.copyProperties(profileDTO, alumniInfo, "id", "userId", "verifyStatus");
+        // 与“校友认证”解耦：编辑资料只允许更新非认证字段，不触发重新审核，也不改角色。
+        alumniInfo.setCompany(profileDTO.getCompany());
+        alumniInfo.setPosition(profileDTO.getPosition());
+        alumniInfo.setCity(profileDTO.getCity());
+        alumniInfo.setBio(profileDTO.getBio());
 
         if (alumniInfo.getId() == null) {
             // 新增
@@ -98,6 +70,38 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
             // 更新
             updateById(alumniInfo);
         }
+
+        // 同步更新用户基础信息（与校友认证解耦，不触发审核）
+        String email = StrUtil.trim(profileDTO.getEmail());
+        if (StrUtil.isBlank(email)) email = null;
+        String phone = StrUtil.trim(profileDTO.getPhone());
+        if (StrUtil.isBlank(phone)) phone = null;
+
+        if (StrUtil.isNotBlank(email)) {
+            long emailCount = userService.lambdaQuery()
+                    .eq(UserEntity::getEmail, email)
+                    .ne(UserEntity::getId, currentUserId)
+                    .count();
+            if (emailCount > 0) {
+                throw new BusinessException(ResultCode.EMAIL_EXISTS, "邮箱已被其他用户使用");
+            }
+        }
+        if (StrUtil.isNotBlank(phone)) {
+            long phoneCount = userService.lambdaQuery()
+                    .eq(UserEntity::getPhone, phone)
+                    .ne(UserEntity::getId, currentUserId)
+                    .count();
+            if (phoneCount > 0) {
+                throw new BusinessException(ResultCode.PARAM_ERROR, "手机号已被其他用户使用");
+            }
+        }
+
+        UserEntity user = new UserEntity();
+        user.setId(currentUserId);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setAvatar(profileDTO.getAvatar());
+        userService.updateById(user);
 
         log.info("校友档案更新成功，用户ID: {}", currentUserId);
     }
@@ -185,23 +189,4 @@ public class AlumniProfileServiceImpl extends ServiceImpl<AlumniProfileMapper, A
                 .one();
     }
 
-    /**
-     * 创建默认校友信息
-     */
-    private AlumniInfo createDefaultAlumniInfo(Long userId) {
-        UserEntity user = userService.getById(userId);
-        if (user == null) {
-            throw new BusinessException(ResultCode.USER_NOT_EXIST, "用户不存在");
-        }
-
-        AlumniInfo alumniInfo = new AlumniInfo();
-        alumniInfo.setUserId(userId);
-        alumniInfo.setRealName("未设置");
-        alumniInfo.setStudentId("TEMP_" + userId);
-        alumniInfo.setAdmissionYear(2000);
-        alumniInfo.setVerifyStatus(0);
-
-        save(alumniInfo);
-        return alumniInfo;
-    }
 }

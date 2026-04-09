@@ -3,6 +3,7 @@ import cn.hutool.core.lang.UUID;
 import com.run.runsocialplatform.common.constant.ResultCode;
 import com.run.runsocialplatform.common.exception.BusinessException;
 import com.run.runsocialplatform.common.result.Result;
+import com.run.runsocialplatform.common.utils.MinioUtil;
 import com.run.runsocialplatform.module.auth.model.dto.AlumniVerifyDTO;
 import com.run.runsocialplatform.module.auth.model.dto.LoginDTO;
 import com.run.runsocialplatform.module.auth.model.dto.RegisterDTO;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
@@ -29,6 +31,7 @@ public class AuthController {
 
     private final UserService userService;
     private final CaptchaService captchaService;
+    private final MinioUtil minioUtil;
 
     @PostMapping("/register")
     @Operation(summary = "用户注册")
@@ -126,6 +129,21 @@ public class AuthController {
     public Result<Void> submitAlumniVerify(@Valid @RequestBody AlumniVerifyDTO verifyDTO) {
         userService.submitAlumniVerify(verifyDTO);
         return Result.success();
+    }
+
+    @PostMapping("/alumni/student-card/upload")
+    @Operation(summary = "上传校友认证学生卡照片")
+    @PreAuthorize("hasAuthority('USER')")
+    public Result<String> uploadStudentCard(@RequestParam("file") MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            return Result.error("上传文件不能为空");
+        }
+        long maxSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            return Result.error("学生卡照片不能超过5MB");
+        }
+        String objectName = minioUtil.uploadStudentCard(file);
+        return Result.success(objectName);
     }
 
     @GetMapping("/alumni/verify/status")

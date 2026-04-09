@@ -189,6 +189,7 @@ public class AdminServiceImpl implements AdminService {
             alumniInfoVO.setGraduationYear(alumniInfo.getGraduationYear());
             alumniInfoVO.setCollege(alumniInfo.getCollege());
             alumniInfoVO.setMajor(alumniInfo.getMajor());
+            alumniInfoVO.setStudentCardImage(alumniInfo.getStudentCardImage());
             alumniInfoVO.setCompany(alumniInfo.getCompany());
             alumniInfoVO.setPosition(alumniInfo.getPosition());
             alumniInfoVO.setCity(alumniInfo.getCity());

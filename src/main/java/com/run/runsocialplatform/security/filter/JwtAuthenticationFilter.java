@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -26,9 +25,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * JWT认证过滤器
@@ -71,17 +67,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (StrUtil.isNotBlank(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                        // 获取令牌中的权限信息
-                        List<String> authorityStrings = jwtUtil.getAuthoritiesFromToken(token);
-                        List<SimpleGrantedAuthority> authorities = authorityStrings.stream()
-                                .map(SimpleGrantedAuthority::new)
-                                .collect(Collectors.toList());
-
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,
                                         null,
-                                        authorities
+                                        userDetails.getAuthorities()
                                 );
 
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

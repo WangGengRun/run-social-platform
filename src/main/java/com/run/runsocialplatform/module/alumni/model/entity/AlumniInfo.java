@@ -24,6 +24,11 @@ public class AlumniInfo {
 
     private String major;
 
+    /**
+     * 学生卡照片（MinIO objectName）
+     */
+    private String studentCardImage;
+
     private String company;
 
     private String position;

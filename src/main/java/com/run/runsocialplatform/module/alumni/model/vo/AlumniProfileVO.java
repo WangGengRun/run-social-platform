@@ -17,11 +17,20 @@ public class AlumniProfileVO {
     @Schema(description = "用户名")
     private String username;
 
+    @Schema(description = "邮箱")
+    private String email;
+
+    @Schema(description = "手机号")
+    private String phone;
+
     @Schema(description = "用户角色：USER/ALUMNI/ADMIN")
     private String role;
 
     @Schema(description = "真实姓名")
     private String realName;
+
+    @Schema(description = "学号")
+    private String studentId;
 
     @Schema(description = "头像")
     private String avatar;
@@ -37,6 +46,9 @@ public class AlumniProfileVO {
 
     @Schema(description = "专业")
     private String major;
+
+    @Schema(description = "学生卡照片（MinIO objectName）")
+    private String studentCardImage;
 
     @Schema(description = "公司")
     private String company;

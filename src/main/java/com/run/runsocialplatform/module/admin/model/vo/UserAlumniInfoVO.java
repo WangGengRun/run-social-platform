@@ -13,6 +13,7 @@ public class UserAlumniInfoVO {
     private Integer graduationYear;
     private String college;
     private String major;
+    private String studentCardImage;
     private String company;
     private String position;
     private String city;

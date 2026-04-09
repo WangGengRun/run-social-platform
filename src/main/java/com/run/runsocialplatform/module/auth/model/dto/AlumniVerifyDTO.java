@@ -4,7 +4,6 @@ package com.run.runsocialplatform.module.auth.model.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -32,16 +31,7 @@ public class AlumniVerifyDTO {
     @Schema(description = "专业", example = "计算机科学与技术")
     private String major;
 
-    @Schema(description = "公司", example = "阿里巴巴")
-    private String company;
-
-    @Schema(description = "职位", example = "高级工程师")
-    private String position;
-
-    @Schema(description = "城市", example = "杭州")
-    private String city;
-
-    @Size(max = 500, message = "个人简介不能超过500字")
-    @Schema(description = "个人简介", example = "热爱技术，喜欢分享")
-    private String bio;
+    @NotBlank(message = "学生卡照片不能为空")
+    @Schema(description = "学生卡照片（MinIO objectName）", example = "student-card/xxx.jpg")
+    private String studentCardImage;
 }
