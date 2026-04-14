@@ -56,5 +56,10 @@ public interface PostService extends IService<Post> {
      * 获取我的动态列表
      */
     Page<PostVO> getMyPosts(Integer pageNum, Integer pageSize);
+
+    /**
+     * 按关键字搜索动态
+     */
+    Page<PostVO> searchPosts(String keyword, Integer pageNum, Integer pageSize);
 }
 

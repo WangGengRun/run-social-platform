@@ -42,5 +42,12 @@ public interface PostMapper extends BaseMapper<Post> {
      */
     PostVO selectPostDetail(@Param("postId") Long postId,
                             @Param("currentUserId") Long currentUserId);
+
+    /**
+     * 按关键字搜索动态（内容匹配）
+     */
+    IPage<PostVO> searchPosts(Page<PostVO> page,
+                             @Param("keyword") String keyword,
+                             @Param("currentUserId") Long currentUserId);
 }
 

@@ -8,6 +8,7 @@
           <h1 class="feed-title">动态圈</h1>
           <p class="feed-desc">校友动态广场</p>
         </div>
+        <FeedSearchPanel />
       </header>
 
       <div class="tabs-panel">
@@ -42,6 +43,7 @@ import PostList from '../components/PostList.vue'
 import AppShellBar from '../components/AppShellBar.vue'
 import HotPostsPanel from '../components/HotPostsPanel.vue'
 import FloatingAiAssistant from '../components/FloatingAiAssistant.vue'
+import FeedSearchPanel from '../components/FeedSearchPanel.vue'
 
 const messageStore = useMessageStore()
 const userStore = useUserStore()

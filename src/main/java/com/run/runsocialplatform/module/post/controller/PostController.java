@@ -133,6 +133,17 @@ public class PostController {
         return Result.success(PageResult.of(page));
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "按关键字搜索动态")
+    @PreAuthorize("isAuthenticated()")
+    public Result<PageResult<PostVO>> searchPosts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+        Page<PostVO> page = postService.searchPosts(keyword, pageNum, pageSize);
+        return Result.success(PageResult.of(page));
+    }
+
     @PostMapping("/{postId}/like")
     @Operation(summary = "点赞动态")
     @PreAuthorize("isAuthenticated()")

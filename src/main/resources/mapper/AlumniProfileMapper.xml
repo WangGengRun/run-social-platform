@@ -18,6 +18,7 @@
         a.position,
         a.city,
         a.verify_status as verifyStatus,
+        u.username,
         u.avatar,
         CASE
         WHEN f.id IS NOT NULL THEN true
@@ -34,6 +35,7 @@
         WHERE u.status = 1
         <if test="searchDTO.keyword != null and searchDTO.keyword != ''">
             AND (a.real_name LIKE CONCAT('%', #{searchDTO.keyword}, '%')
+            OR u.username LIKE CONCAT('%', #{searchDTO.keyword}, '%')
             OR a.college LIKE CONCAT('%', #{searchDTO.keyword}, '%')
             OR a.major LIKE CONCAT('%', #{searchDTO.keyword}, '%')
             OR a.company LIKE CONCAT('%', #{searchDTO.keyword}, '%')

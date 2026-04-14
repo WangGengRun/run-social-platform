@@ -166,6 +166,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         return getUserPosts(currentUserId, pageNum, pageSize);
     }
 
+    @Override
+    public Page<PostVO> searchPosts(String keyword, Integer pageNum, Integer pageSize) {
+        Long currentUserId = SecurityUtil.getCurrentUserId();
+        Page<PostVO> page = new Page<>(pageNum, pageSize);
+        IPage<PostVO> result = postMapper.searchPosts(page, keyword, currentUserId);
+        processPostImageUrls(result.getRecords());
+        return (Page<PostVO>) result;
+    }
+
     /**
      * 处理动态图片URL列表
      */

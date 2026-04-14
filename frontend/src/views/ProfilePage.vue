@@ -6,16 +6,7 @@
     </div>
     
     <div v-else class="profile-content">
-      <!-- 调试信息 -->
-      <div class="debug-info">
-        <h3>调试信息</h3>
-        <p>用户登录状态: {{ userStore.isLoggedIn }}</p>
-        <p>当前登录用户ID (userStore.userId): {{ userStore.userId }}</p>
-        <p>校友信息表ID (alumniId): {{ alumniId }}</p>
-        <p>校友用户ID (userInfo.userId): {{ userInfo.userId }}</p>
-        <p>isSelf: {{ isSelf }}</p>
-      </div>
-      
+
       <UserInfoCard
         :user-info="userInfo"
         :follow-stats="followStats"

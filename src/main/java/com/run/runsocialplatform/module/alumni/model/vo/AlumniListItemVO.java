@@ -17,6 +17,9 @@ public class AlumniListItemVO {
     @Schema(description = "真实姓名")
     private String realName;
 
+    @Schema(description = "昵称（用户名）")
+    private String username;
+
     @Schema(description = "头像")
     private String avatar;
 

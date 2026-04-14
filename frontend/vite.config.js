@@ -8,7 +8,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8120',
+        // 避免 Windows 上 localhost 解析到 IPv6 ::1 导致 ECONNREFUSED
+        target: 'http://127.0.0.1:8120',
         changeOrigin: true
       }
     }
