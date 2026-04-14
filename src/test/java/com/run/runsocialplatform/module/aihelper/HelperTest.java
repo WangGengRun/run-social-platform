@@ -1,6 +1,7 @@
 package com.run.runsocialplatform.module.aihelper;
 
 
+import com.run.runsocialplatform.module.aihelper.app.Helper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -23,5 +24,14 @@ class HelperTest {
         Assertions.assertNotNull(answer);
 
 
+    }
+
+    @Test
+    void doChatWithRag() {
+        String chatId = UUID.randomUUID().toString();
+        String message = "报名后如何获取活动的最新通知？";
+        String answer = helper.doChatWithRag(message, chatId);
+        //Assertions 语法
+        Assertions.assertNotNull(answer);
     }
 }

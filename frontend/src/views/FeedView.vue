@@ -28,6 +28,8 @@
         </el-tabs>
       </div>
     </main>
+
+    <FloatingAiAssistant />
   </div>
 </template>
 
@@ -39,6 +41,7 @@ import websocketManager from '../utils/websocket-manager'
 import PostList from '../components/PostList.vue'
 import AppShellBar from '../components/AppShellBar.vue'
 import HotPostsPanel from '../components/HotPostsPanel.vue'
+import FloatingAiAssistant from '../components/FloatingAiAssistant.vue'
 
 const messageStore = useMessageStore()
 const userStore = useUserStore()

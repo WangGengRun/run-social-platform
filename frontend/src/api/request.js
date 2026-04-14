@@ -41,6 +41,9 @@ service.interceptors.response.use(
   error => {
     console.error('响应错误:', error)
     let message = '网络错误'
+    if (error?.code === 'ECONNABORTED' || String(error?.message || '').toLowerCase().includes('timeout')) {
+      message = '请求超时，请稍后重试'
+    }
     if (error.response) {
       const data = error.response.data
       if (error.response.status === 401) {

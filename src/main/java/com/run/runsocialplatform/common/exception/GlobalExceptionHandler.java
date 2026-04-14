@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 
@@ -86,6 +87,15 @@ public class GlobalExceptionHandler {
     public Result<Void> handleDuplicateKeyException(Exception e) {
         log.warn("数据库约束异常: {}", e.getMessage());
         return Result.error(ResultCode.PARAM_ERROR.getCode(), "保存失败：邮箱或手机号可能已被占用");
+    }
+
+    /**
+     * 处理 AI 调用异常（DashScope 等第三方服务超时/不可用）
+     */
+    @ExceptionHandler({RestClientException.class})
+    public Result<Void> handleRestClientException(RestClientException e) {
+        log.warn("AI/HTTP 调用异常: {}", e.getMessage());
+        return Result.error(ResultCode.SERVICE_ERROR.getCode(), "AI助手暂时不可用，请稍后重试");
     }
 
     /**
